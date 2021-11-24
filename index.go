@@ -17,6 +17,10 @@ func NewIndex() *Index {
 	return &index
 }
 
+func (index *Index) GetData() map[string]*Field {
+	return index.fields
+}
+
 func (index *Index) Add(id int64, record map[string]interface{}) {
 	index.ids = append(index.ids, id)
 	for key, val := range record {
@@ -47,6 +51,11 @@ func (index *Index) GetFieldData(fieldName string) (val *Field, ok bool) {
 		return index.fields[fieldName], true
 	}
 	return val, false
+}
+
+// GetAllRecordId get all record id stored in index
+func (index *Index) GetAllRecordId() []int64 {
+	return index.ids
 }
 
 func (index *Index) addValue(id int64, key string, val interface{}) {
