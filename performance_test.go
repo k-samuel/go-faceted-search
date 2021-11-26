@@ -152,6 +152,8 @@ func check(e error) {
 
 func BenchmarkSearch(b *testing.B) {
 
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
 	start := time.Now()
 	fmt.Printf("Alloc: %v MiB ", bToMb(indexSize))
 	fmt.Print("Load: ", indexLoad)

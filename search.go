@@ -1,5 +1,11 @@
 package facet
 
+import (
+	"context"
+	"runtime"
+	"sync"
+)
+
 type Search struct {
 	index *Index
 }
@@ -9,6 +15,11 @@ func NewSearch(index *Index) *Search {
 	var search Search
 	search.index = index
 	return &search
+}
+
+type filterCountInfo struct {
+	field string
+	data  map[string]int
 }
 
 // Find records using filters, limit search using list of recordId (optional)
@@ -67,7 +78,6 @@ func (search *Search) AggregateFilters(filters []FilterInterface, inputRecords [
 	indexedFilters := make(map[string]FilterInterface)
 
 	var filteredRecords []int64
-	var recordIds map[int64]struct{}
 
 	indexedFilteredRecords := make(map[int64]struct{})
 
@@ -82,48 +92,123 @@ func (search *Search) AggregateFilters(filters []FilterInterface, inputRecords [
 			indexedFilteredRecords = flipInt64ToMap(filteredRecords)
 		}
 	}
-	var filtersCopy map[string]FilterInterface
 
-	for name, field := range search.index.fields {
+	// Create a cancel context for stopping on error
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
 
-		if len(indexedFilters) == 0 && len(inputRecords) == 0 {
-			// count values
-			for val, valueObj := range field.values {
-				if _, ok := result[name]; !ok {
-					result[name] = make(map[string]int)
-				}
-				result[name][val] = len(valueObj.ids)
-			}
-			continue
+	wg := &sync.WaitGroup{}
+	in := make(chan string, 10)
+	out := make(chan *filterCountInfo, 10)
+	errChan := make(chan error)
+
+	go func() {
+		// aggregate fields in goroutines
+		for i := 0; i < runtime.NumCPU(); i++ {
+			wg.Add(1)
+			go aggregateField(in, out, ctx, errChan, wg, indexedFilters, indexedFilteredRecords, inputRecords, search)
 		}
+		wg.Wait()
+		close(out)
+	}()
 
-		// copy hash map
-		filtersCopy = copyFilterMap(indexedFilters)
+	// send fields into aggregation queue
+	for name := range search.index.fields {
+		in <- name
+	}
+	close(in)
 
-		// do not apply self filtering
-		if _, ok := filtersCopy[name]; ok {
-			delete(filtersCopy, name)
-			found, err := search.Find(extractFilters(filtersCopy), inputRecords)
-			if err != nil {
-				return result, err
+	// collect aggregation results
+Loop:
+	for {
+		select {
+		case err = <-errChan:
+			// send cancel to goroutines on field aggregation error
+			// no need to process full result
+			cancel()
+			// wait for goroutines stopped
+			wg.Wait()
+			result = make(map[string]map[string]int)
+			break Loop
+		case res, ok := <-out:
+			if !ok {
+				cancel()
+				break Loop
 			}
-			recordIds = flipInt64ToMap(found)
-		} else {
-			recordIds = indexedFilteredRecords
-		}
-
-		for vName, vList := range field.values {
-			// need to count values
-			intersect := intersectInt64MapKeys(vList.ids, recordIds)
-			if len(intersect) > 0 {
-				if _, ok := result[name]; !ok {
-					result[name] = make(map[string]int)
-				}
-				result[name][vName] = len(intersect)
-			}
+			result[res.field] = res.data
 		}
 	}
 	return result, err
+}
+
+// aggregateField - aggregation goroutine
+func aggregateField(
+	in chan string, // input channel
+	out chan *filterCountInfo, // results channel
+	ctx context.Context, // cancel context
+	errChan chan error, // channel for error messages
+	wg *sync.WaitGroup,
+	indexedFilters map[string]FilterInterface, // filters indexed by field name
+	indexedFilteredRecords map[int64]struct{}, // Total list of record id suitable for filters conditions
+	inputRecords []int64, // input record id to search in
+	search *Search, // search object
+
+) {
+	defer wg.Done()
+	var filtersCopy map[string]FilterInterface
+	var recordIds map[int64]struct{}
+	var field *Field
+
+	for {
+		select {
+		// cancel command
+		case <-ctx.Done():
+			return
+
+		case fieldName, ok := <-in:
+			if !ok {
+				return
+			}
+
+			result := &filterCountInfo{field: fieldName, data: make(map[string]int)}
+
+			field = search.index.fields[fieldName]
+			if len(indexedFilters) == 0 && len(inputRecords) == 0 {
+				// count values
+				for val, valueObj := range field.values {
+					result.data[val] = len(valueObj.ids)
+				}
+				continue
+			}
+
+			// copy hash map
+			filtersCopy = copyFilterMap(indexedFilters)
+
+			// do not apply self filtering
+			if _, ok := filtersCopy[fieldName]; ok {
+				delete(filtersCopy, fieldName)
+				found, err := search.Find(extractFilters(filtersCopy), inputRecords)
+				if err != nil {
+					// send error (will stop other goroutines)
+					errChan <- err
+					return
+				}
+				recordIds = flipInt64ToMap(found)
+			} else {
+				recordIds = indexedFilteredRecords
+			}
+
+			for vName, vList := range field.values {
+				// get records count for filter field value
+				intersect := intersectInt64MapKeys(vList.ids, recordIds)
+				if len(intersect) > 0 {
+					result.data[vName] = len(intersect)
+				}
+			}
+			out <- result
+			runtime.Gosched()
+		}
+	}
 }
 
 func extractFilters(filters map[string]FilterInterface) []FilterInterface {

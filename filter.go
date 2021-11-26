@@ -25,7 +25,7 @@ func (filter *ValueFilter) FilterResults(field *Field, inputKeys map[int64]struc
 		if field.HasValue(val) {
 			list := field.GetValue(val)
 			if len(result) == 0 {
-				result = list.ids
+				result = copyInt64Map(list.ids)
 			} else {
 				for i := range list.ids {
 					result[i] = struct{}{}
