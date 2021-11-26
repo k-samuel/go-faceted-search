@@ -3,11 +3,13 @@ package facet
 import (
 	"fmt"
 	"strconv"
+	"sync"
 )
 
 type Index struct {
 	fields map[string]*Field
 	ids    []int64
+	mu     sync.Mutex
 }
 
 func NewIndex() *Index {
@@ -22,7 +24,9 @@ func (index *Index) GetData() map[string]*Field {
 }
 
 func (index *Index) Add(id int64, record map[string]interface{}) {
+	index.mu.Lock()
 	index.ids = append(index.ids, id)
+	index.mu.Unlock()
 	for key, val := range record {
 		index.addValue(id, key, val)
 	}
@@ -34,7 +38,9 @@ func (index *Index) HasField(name string) bool {
 }
 
 func (index *Index) createField(name string) *Field {
+	index.mu.Lock()
 	index.fields[name] = &Field{values: make(map[string]*Value)}
+	index.mu.Unlock()
 	return index.fields[name]
 }
 
@@ -108,18 +114,6 @@ func (index *Index) addValue(id int64, key string, val interface{}) {
 
 func getValueString(val interface{}) string {
 
-	if s, ok := val.(string); ok {
-		return s
-	}
-
-	if s, ok := val.(int); ok {
-		return string(s)
-	}
-
-	if s, ok := val.(float64); ok {
-		return strconv.FormatFloat(s, 'f', -1, 64)
-	}
-
 	if s, ok := val.(bool); ok {
 		if s {
 			return "1"
@@ -127,12 +121,30 @@ func getValueString(val interface{}) string {
 			return "0"
 		}
 	}
+
+	if s, ok := val.(string); ok {
+		return s
+	}
+
+	if s, ok := val.(int64); ok {
+		return strconv.FormatInt(s, 10)
+	}
+
+	if s, ok := val.(int); ok {
+		return strconv.Itoa(s)
+	}
+
+	if s, ok := val.(float64); ok {
+		return strconv.FormatFloat(s, 'f', -1, 64)
+	}
+
 	fmt.Printf("undefined value type %T->%q\n", val, val)
 	panic("undefined value type")
 }
 
 type Field struct {
 	values map[string]*Value
+	mu     sync.Mutex
 }
 
 func (field *Field) HasValues() bool {
@@ -148,7 +160,9 @@ func (field *Field) HasValue(name string) bool {
 }
 
 func (field *Field) createValue(name string) *Value {
+	field.mu.Lock()
 	field.values[name] = &Value{ids: make(map[int64]struct{})}
+	field.mu.Unlock()
 	return field.values[name]
 }
 
@@ -158,8 +172,11 @@ func (field *Field) GetValue(name string) *Value {
 
 type Value struct {
 	ids map[int64]struct{}
+	mu  sync.Mutex
 }
 
 func (value *Value) addId(id int64) {
+	value.mu.Lock()
 	value.ids[id] = struct{}{}
+	value.mu.Unlock()
 }

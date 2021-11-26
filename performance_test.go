@@ -1,10 +1,9 @@
-package main
+package facet
 
 import (
 	"bufio"
 	"encoding/json"
 	"errors"
-	"facet"
 	"fmt"
 	"math/rand"
 	"os"
@@ -14,22 +13,22 @@ import (
 	"time"
 )
 
-var index *facet.Index
+var index *Index
 var datasetFilePrefix = ".test.dataset."
 var indexSize uint64
 var indexLoad time.Duration
-var results = 1000000
+var results = 10000
 var datasetFile string
 
 func init() {
 	datasetFile = datasetFilePrefix + strconv.Itoa(results)
 	if _, err := os.Stat(datasetFile); errors.Is(err, os.ErrNotExist) {
-		createDataset()
+		CreateDataset()
 	}
-	index = createIndex()
+	index = CreateIndex()
 }
 
-func createDataset() {
+func CreateDataset() {
 	start := time.Now()
 	colors := []string{"red", "green", "blue", "yellow", "black", "white"}
 	brands := []string{
@@ -95,15 +94,15 @@ func createDataset() {
 	fmt.Println("Dataset: ", time.Since(start))
 }
 
-func createIndex() *facet.Index {
+func CreateIndex() *Index {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	startM := m.Alloc
 	start := time.Now()
 	var result map[string]interface{}
 
-	var index *facet.Index
-	index = facet.NewIndex()
+	var index *Index
+	index = NewIndex()
 
 	file, err := os.Open(datasetFile)
 	check(err)
@@ -152,26 +151,36 @@ func check(e error) {
 // go tool pprof -callgrind -output callgrind.m.out mem.out
 
 func BenchmarkSearch(b *testing.B) {
+
 	start := time.Now()
 	fmt.Printf("Alloc: %v MiB ", bToMb(indexSize))
 	fmt.Print("Load: ", indexLoad)
 
-	search := facet.NewSearch(index)
-	filters := make([]facet.FilterInterface, 0, 3)
-	filters = append(filters, &facet.ValueFilter{FieldName: "color", Values: []string{"black"}})
-	filters = append(filters, &facet.ValueFilter{FieldName: "warehouse", Values: []string{"789", "45", "65", "1", "10"}})
-	filters = append(filters, &facet.ValueFilter{FieldName: "type", Values: []string{"normal", "middle"}})
+	search := NewSearch(index)
+	filters := make([]FilterInterface, 0, 3)
+	filters = append(filters, &ValueFilter{FieldName: "color", Values: []string{"black"}})
+	filters = append(filters, &ValueFilter{FieldName: "warehouse", Values: []string{"789", "45", "65", "1", "10"}})
+	filters = append(filters, &ValueFilter{FieldName: "type", Values: []string{"normal", "middle"}})
 
 	var recordFilter []int64
 	start = time.Now()
-	res := search.Find(filters, recordFilter)
+	res, _ := search.Find(filters, recordFilter)
 	duration := time.Since(start)
 	fmt.Print(" Find: ", duration)
 	fmt.Printf(" Results: %d ", len(res))
 	fmt.Print(" Items: ", index.GetItemsCount())
 
+	var sorter = NewFieldSorter(index)
 	start = time.Now()
-	filterRes := search.AggregateFilters(filters, recordFilter)
+	sortedRecords, err := sorter.Sort(res, "quantity", SORT_DESC)
+	if err != nil {
+		panic(err)
+	}
+	duration = time.Since(start)
+	fmt.Print(" Sort by field: ", duration, " sorted: ", len(sortedRecords))
+
+	start = time.Now()
+	filterRes, _ := search.AggregateFilters(filters, recordFilter)
 	duration = time.Since(start)
 	fmt.Println(" Aggregate filters: ", duration, " filters: ", len(filterRes))
 }
