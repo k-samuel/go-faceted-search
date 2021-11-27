@@ -28,6 +28,32 @@ Bench v0.2.0 golang 1.17.3 with parallel aggregates
 Search index should be created in one thread before using. Currently Index hash map access not using mutex. 
 It can cause problems in concurrent writes
 
+## Example
+```go
+
+	index := facet.NewIndex()
+	search := facet.NewSearch(index)
+	// example data
+	data := []map[string]interface{}{
+		{"color": "black", "size": 7, "group": "A"},
+		{"color": "black", "size": 8, "group": "A"},
+		{"color": "white", "size": 7, "group": "B"},
+		{"color": "yellow", "size": 7, "group": "C"},
+		{"color": "black", "size": 7, "group": "C"},
+	}
+	for i, v := range data {
+		index.Add(int64(i), v)
+	}
+	
+	filters := []facet.FilterInterface{
+		& facet.ValueFilter{FieldName: "color", Values: []string{"black"}},
+		& facet.ValueFilter{FieldName: "size", Values: []string{"7"}},
+	}
+    // find records
+	res, _ := search.Find(filters, []int64{})
+	// aggregate filters
+	info, _ := search.AggregateFilters(filters, []int64{})
+```
 
 ### Test
 ` go test -coverprofile=cover.out && go tool cover -html=cover.out -o cover.html `

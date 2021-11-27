@@ -87,6 +87,7 @@ func TestGetAggregate(t *testing.T) {
 
 func TestAggregateNoFilter(t *testing.T) {
 	index := NewIndex()
+	search := NewSearch(index)
 	data := []map[string]interface{}{
 		{"color": "black", "size": 7, "group": "A"},
 		{"color": "black", "size": 8, "group": "A"},
@@ -97,20 +98,21 @@ func TestAggregateNoFilter(t *testing.T) {
 	for i, v := range data {
 		index.Add(int64(i), v)
 	}
-	search := NewSearch(index)
 
-	filters := make([]FilterInterface, 0, 2)
-	filters = append(filters, &ValueFilter{FieldName: "color", Values: []string{"black"}})
-	filters = append(filters, &ValueFilter{FieldName: "size", Values: []string{"7"}})
+	filters := []FilterInterface{
+		&ValueFilter{FieldName: "color", Values: []string{"black"}},
+		&ValueFilter{FieldName: "size", Values: []string{"7"}},
+	}
 
-	res, _ := search.AggregateFilters(filters, []int64{})
+	res, _ := search.Find(filters, []int64{})
+	info, _ := search.AggregateFilters(filters, []int64{})
 	exp := map[string]map[string]int{
 		"color": {"black": 2, "white": 1, "yellow": 1},
 		"size":  {"7": 2, "8": 1},
 		"group": {"A": 1, "C": 1},
 	}
 
-	if !reflect.DeepEqual(exp, res) {
+	if !reflect.DeepEqual(exp, info) {
 		t.Errorf("results not match\nGot:\n%v\nExpected:\n%v", exp, res)
 	}
 }
