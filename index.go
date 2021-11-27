@@ -61,7 +61,9 @@ func (index *Index) GetFieldData(fieldName string) (val *Field, ok bool) {
 
 // GetAllRecordId get all record id stored in index
 func (index *Index) GetAllRecordId() []int64 {
-	return index.ids
+	data := make([]int64, len(index.ids))
+	copy(data, index.ids)
+	return data
 }
 
 func (index *Index) addValue(id int64, key string, val interface{}) {
