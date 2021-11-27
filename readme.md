@@ -30,29 +30,30 @@ It can cause problems in concurrent writes
 
 ## Example
 ```go
-
-	index := facet.NewIndex()
-	search := facet.NewSearch(index)
-	// example data
-	data := []map[string]interface{}{
-		{"color": "black", "size": 7, "group": "A"},
-		{"color": "black", "size": 8, "group": "A"},
-		{"color": "white", "size": 7, "group": "B"},
-		{"color": "yellow", "size": 7, "group": "C"},
-		{"color": "black", "size": 7, "group": "C"},
-	}
-	for i, v := range data {
-		index.Add(int64(i), v)
-	}
+    index := facet.NewIndex()
+    search := facet.NewSearch(index)
+    // example data
+    data := []map[string]interface{}{
+        {"color": "black", "size": 7, "group": "A"},
+        {"color": "black", "size": 8, "group": "A"},
+        {"color": "white", "size": 7, "group": "B"},
+        {"color": "yellow", "size": 7, "group": "C"},
+        {"color": "black", "size": 7, "group": "C"},
+    }
+	// Add values using i as recordId
+    for i, v := range data {
+        index.Add(int64(i), v)
+    }
 	
-	filters := []facet.FilterInterface{
-		& facet.ValueFilter{FieldName: "color", Values: []string{"black"}},
-		& facet.ValueFilter{FieldName: "size", Values: []string{"7"}},
-	}
+    // create some filters
+    filters := []facet.FilterInterface{
+        & facet.ValueFilter{FieldName: "color", Values: []string{"black"}},
+        & facet.ValueFilter{FieldName: "size", Values: []string{"7"}},
+    }
     // find records
-	res, _ := search.Find(filters, []int64{})
-	// aggregate filters
-	info, _ := search.AggregateFilters(filters, []int64{})
+    res, _ := search.Find(filters, []int64{})
+    // aggregate filters
+    info, _ := search.AggregateFilters(filters, []int64{})
 ```
 
 ### Test
