@@ -40,7 +40,7 @@ It can cause problems in concurrent writes
         {"color": "yellow", "size": 7, "group": "C"},
         {"color": "black", "size": 7, "group": "C"},
     }
-	// Add values using i as recordId
+    // Add values using i as recordId
     for i, v := range data {
         index.Add(int64(i), v)
     }
