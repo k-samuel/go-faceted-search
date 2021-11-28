@@ -57,4 +57,4 @@ It can cause problems in concurrent writes
 ```
 
 ### Test
-` go test -coverprofile=cover.out && go tool cover -html=cover.out -o cover.html `
+` go test facet -coverprofile=cover.out && go tool cover -html=cover.out -o cover.html `

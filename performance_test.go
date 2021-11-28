@@ -17,7 +17,7 @@ var index *Index
 var datasetFilePrefix = ".test.dataset."
 var indexSize uint64
 var indexLoad time.Duration
-var results = 10000
+var results = 100000
 var datasetFile string
 
 func init() {
@@ -145,14 +145,14 @@ func check(e error) {
 }
 
 // -----
-// go test -bench . -benchmem
-// go test -bench . -benchmem -cpuprofile=cpu.out -memprofile=mem.out -memprofilerate=1 main_test.go
+// go test facet -bench . -benchmem
+// go test facet -bench . -benchmem -cpuprofile=cpu.out -memprofile=mem.out -memprofilerate=1 performance_test.go
 // go tool pprof -callgrind -output callgrind.c.out cpu.out
 // go tool pprof -callgrind -output callgrind.m.out mem.out
 
 func BenchmarkSearch(b *testing.B) {
 
-	runtime.GOMAXPROCS(runtime.NumCPU())
+	//	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	start := time.Now()
 	fmt.Printf("Alloc: %v MiB ", bToMb(indexSize))

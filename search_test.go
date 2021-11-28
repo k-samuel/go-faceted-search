@@ -40,9 +40,9 @@ func TestFindWithLimit(t *testing.T) {
 	filters = append(filters, &ValueFilter{FieldName: "vendor", Values: []string{"Samsung", "Apple"}})
 
 	res, _ := search.Find(filters, []int64{1, 3})
-	exp := []int64{1, 3}
+	exp := flipInt64ToMap([]int64{1, 3})
 
-	if !reflect.DeepEqual(exp, res) {
+	if !reflect.DeepEqual(exp, flipInt64ToMap(res)) {
 		t.Errorf("results not match\nGot:\n%v\nExpected:\n%v", exp, res)
 	}
 }
@@ -85,7 +85,7 @@ func TestGetAggregate(t *testing.T) {
 	}
 }
 
-func TestAggregateNoFilter(t *testing.T) {
+func TestAggregateMultiFilter(t *testing.T) {
 	index := NewIndex()
 	search := NewSearch(index)
 	data := []map[string]interface{}{
@@ -117,7 +117,7 @@ func TestAggregateNoFilter(t *testing.T) {
 	}
 }
 
-func TestAggregateMultiFilter(t *testing.T) {
+func TestAggregateNoFilter(t *testing.T) {
 	index := NewIndex()
 	data := []map[string]interface{}{
 		{"color": "black", "size": 7, "group": "A"},
@@ -139,7 +139,7 @@ func TestAggregateMultiFilter(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(exp, res) {
-		t.Errorf("results not match\nGot:\n%v\nExpected:\n%v", exp, res)
+		t.Errorf("results not match\nGot:\n%v\nExpected:\n%v", res, exp)
 	}
 }
 

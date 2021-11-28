@@ -178,6 +178,8 @@ func aggregateField(
 				for val, valueObj := range field.values {
 					result.data[val] = len(valueObj.ids)
 				}
+				out <- result
+				runtime.Gosched()
 				continue
 			}
 
