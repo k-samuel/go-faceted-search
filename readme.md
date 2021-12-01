@@ -1,5 +1,4 @@
-![Build and Test](https://github.com/k-samuel/go-faceted-search/workflows/go/badge.svg?branch=master&event=push)
-
+[![Go](https://github.com/k-samuel/go-faceted-search/actions/workflows/go.yml/badge.svg)](https://github.com/k-samuel/go-faceted-search/actions/workflows/go.yml)
 # Experimental port of PHP k-samuel/faceted-search
 
 PHP Library https://github.com/k-samuel/faceted-search
