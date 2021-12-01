@@ -1,3 +1,5 @@
+![Build and Test](https://github.com/k-samuel/go-faceted-search/workflows/go/badge.svg?branch=master&event=push)
+
 # Experimental port of PHP k-samuel/faceted-search
 
 PHP Library https://github.com/k-samuel/faceted-search
