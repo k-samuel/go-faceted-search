@@ -17,7 +17,7 @@ var index *Index
 var datasetFilePrefix = ".test.dataset."
 var indexSize uint64
 var indexLoad time.Duration
-var results = 1000000
+var results = 100000
 var datasetFile string
 
 func init() {
