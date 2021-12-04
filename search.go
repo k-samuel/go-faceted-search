@@ -211,9 +211,9 @@ func aggregateField(
 
 			for vName, vList := range field.values {
 				// get records count for filter field value
-				intersect := intersectInt64MapKeys(vList.ids, recordIds)
-				if len(intersect) > 0 {
-					result.data[vName] = len(intersect)
+				intersect := intersectInt64MapKeysLen(vList.ids, recordIds)
+				if intersect > 0 {
+					result.data[vName] = intersect
 				}
 			}
 			out <- result

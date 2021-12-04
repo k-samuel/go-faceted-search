@@ -17,7 +17,7 @@ var index *Index
 var datasetFilePrefix = ".test.dataset."
 var indexSize uint64
 var indexLoad time.Duration
-var results = 100000
+var results = 1000000
 var datasetFile string
 
 func init() {
@@ -150,9 +150,30 @@ func check(e error) {
 // go tool pprof -callgrind -output callgrind.c.out cpu.out
 // go tool pprof -callgrind -output callgrind.m.out mem.out
 
+func BenchmarkFind(b *testing.B) {
+	var recordFilter []int64
+	search := NewSearch(index)
+	filters := make([]FilterInterface, 0, 3)
+	filters = append(filters, &ValueFilter{FieldName: "color", Values: []string{"black"}})
+	filters = append(filters, &ValueFilter{FieldName: "warehouse", Values: []string{"789", "45", "65", "1", "10"}})
+	filters = append(filters, &ValueFilter{FieldName: "type", Values: []string{"normal", "middle"}})
+	search.Find(filters, recordFilter)
+}
+
+func BenchmarkAggregateFilters(b *testing.B) {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	var recordFilter []int64
+	search := NewSearch(index)
+	filters := make([]FilterInterface, 0, 3)
+	filters = append(filters, &ValueFilter{FieldName: "color", Values: []string{"black"}})
+	filters = append(filters, &ValueFilter{FieldName: "warehouse", Values: []string{"789", "45", "65", "1", "10"}})
+	filters = append(filters, &ValueFilter{FieldName: "type", Values: []string{"normal", "middle"}})
+	search.AggregateFilters(filters, recordFilter)
+}
+
 func BenchmarkSearch(b *testing.B) {
 
-	//	runtime.GOMAXPROCS(runtime.NumCPU())
+	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	start := time.Now()
 	fmt.Printf("Alloc: %v MiB ", bToMb(indexSize))

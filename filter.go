@@ -18,28 +18,34 @@ func (filter *ValueFilter) GetFieldName() string {
 
 func (filter *ValueFilter) FilterResults(field *Field, inputKeys map[int64]struct{}) (result map[int64]struct{}, err error) {
 
+	var list *Value
 	result = make(map[int64]struct{})
+
+	hasInput := len(inputKeys) > 0
 
 	// collect list for record id for different values of one field
 	for _, val := range filter.Values {
-		if field.HasValue(val) {
-			list := field.GetValue(val)
-			if len(result) == 0 {
-				result = copyInt64Map(list.ids)
-			} else {
-				for i := range list.ids {
-					result[i] = struct{}{}
+
+		if !field.HasValue(val) {
+			continue
+		}
+
+		list = field.GetValue(val)
+		if len(list.ids) == 0 {
+			continue
+		}
+
+		for key := range list.ids {
+			if hasInput {
+				if _, ok := inputKeys[key]; ok {
+					result[key] = struct{}{}
 				}
+			} else {
+				result[key] = struct{}{}
 			}
 		}
 	}
-	// not found any or no input filtering
-	if len(result) == 0 || len(inputKeys) == 0 {
-		return result, err
-	}
-
-	// find intersect of start records and faceted results
-	return intersectInt64MapKeys(result, inputKeys), err
+	return result, err
 }
 
 func intersectInt64MapKeys(a, b map[int64]struct{}) map[int64]struct{} {
@@ -58,6 +64,25 @@ func intersectInt64MapKeys(a, b map[int64]struct{}) map[int64]struct{} {
 		}
 	}
 	return result
+}
+
+func intersectInt64MapKeysLen(a, b map[int64]struct{}) int {
+	var intersectLen = 0
+
+	if len(a) < len(b) {
+		for key := range a {
+			if _, ok := b[key]; ok {
+				intersectLen++
+			}
+		}
+	} else {
+		for key := range b {
+			if _, ok := a[key]; ok {
+				intersectLen++
+			}
+		}
+	}
+	return intersectLen
 }
 
 const RANGE_BOTH = 0
