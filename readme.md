@@ -26,8 +26,8 @@ Bench v0.2.2 golang 1.17.3 with parallel aggregates
 
 # Note
 
-Search index should be created in one thread before using. Currently Index hash map access not using mutex. 
-It can cause problems in concurrent writes
+Search index should be created in one thread before using. Currently, Index hash map access not using mutex. 
+It can cause problems in concurrent writes and reads.
 
 ## Example
 ```go
