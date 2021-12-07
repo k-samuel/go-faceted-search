@@ -60,6 +60,7 @@ func (index *Index) Add(id int64, record map[string]interface{}) {
 	}
 }
 
+// HasField - check if field exists
 func (index *Index) HasField(name string) bool {
 	_, ok := index.fields[name]
 	return ok
@@ -72,19 +73,14 @@ func (index *Index) createField(name string) *Field {
 	return index.fields[name]
 }
 
+// GetField - get field struct from index
 func (index *Index) GetField(name string) *Field {
 	return index.fields[name]
 }
 
+// GetItemsCount - get total count records in index
 func (index *Index) GetItemsCount() int {
 	return len(index.ids)
-}
-
-func (index *Index) GetFieldData(fieldName string) (val *Field, ok bool) {
-	if _, ok := index.fields[fieldName]; ok {
-		return index.fields[fieldName], true
-	}
-	return val, false
 }
 
 func (index *Index) addValue(id int64, key string, val interface{}) {

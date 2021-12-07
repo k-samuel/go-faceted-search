@@ -16,6 +16,7 @@ func (field *Field) HasValues() bool {
 	return false
 }
 
+// HasValue - check if field value exists
 func (field *Field) HasValue(name string) bool {
 	_, ok := field.Values[name]
 	return ok

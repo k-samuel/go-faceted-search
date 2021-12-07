@@ -1,5 +1,6 @@
 package utils
 
+// IntersectInt64MapKeys - intersection of int64 maps
 func IntersectInt64MapKeys(a, b map[int64]struct{}) map[int64]struct{} {
 	result := make(map[int64]struct{})
 	if len(a) < len(b) {
@@ -18,6 +19,7 @@ func IntersectInt64MapKeys(a, b map[int64]struct{}) map[int64]struct{} {
 	return result
 }
 
+// IntersectInt64MapKeysLen - get count of intersected values
 func IntersectInt64MapKeysLen(a, b map[int64]struct{}) int {
 	var intersectLen = 0
 
@@ -37,6 +39,7 @@ func IntersectInt64MapKeysLen(a, b map[int64]struct{}) int {
 	return intersectLen
 }
 
+// FlipInt64ToMap - convert in64 slice into map as keys
 func FlipInt64ToMap(list []int64) map[int64]struct{} {
 	result := make(map[int64]struct{})
 	for _, v := range list {
@@ -45,6 +48,7 @@ func FlipInt64ToMap(list []int64) map[int64]struct{} {
 	return result
 }
 
+// CopyInt64Map - copy map
 func CopyInt64Map(input map[int64]struct{}) map[int64]struct{} {
 	result := make(map[int64]struct{})
 	for k, v := range input {

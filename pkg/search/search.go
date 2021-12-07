@@ -118,7 +118,7 @@ func (search *Search) AggregateFilters(filters []filter.FilterInterface, inputRe
 		// aggregate fields in goroutines
 		for i := 0; i < runtime.NumCPU(); i++ {
 			wg.Add(1)
-			go search.aggregateField(in, out, ctx, errChan, wg, indexedFilters, indexedFilteredRecords, input)
+			go search.aggregateField(ctx, in, out, errChan, wg, indexedFilters, indexedFilteredRecords, input)
 		}
 		wg.Wait()
 		close(out)
@@ -155,9 +155,9 @@ Loop:
 
 // aggregateField - aggregation goroutine
 func (search *Search) aggregateField(
+	ctx context.Context, // cancel context
 	in chan string, // input channel
 	out chan *filterCountInfo, // results channel
-	ctx context.Context, // cancel context
 	errChan chan error, // channel for error messages
 	wg *sync.WaitGroup,
 	indexedFilters map[string]filter.FilterInterface, // filters indexed by field name

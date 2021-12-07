@@ -4,15 +4,18 @@ import (
 	"github.com/k-samuel/go-faceted-search/pkg/index"
 )
 
+// ValueFilter - filter facet data by field value
 type ValueFilter struct {
 	FieldName string
 	Values    []string
 }
 
+// GetFieldName - get field name
 func (filter *ValueFilter) GetFieldName() string {
 	return filter.FieldName
 }
 
+// FilterResults - filter facet field data
 func (filter *ValueFilter) FilterResults(field *index.Field, inputKeys map[int64]struct{}) (result map[int64]struct{}, err error) {
 
 	var list *index.Value

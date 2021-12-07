@@ -6,25 +6,34 @@ import (
 	"strconv"
 )
 
+// RANGE_BOTH - range type with min and max value
 const RANGE_BOTH = 0
+
+// RANGE_MIN - range type with only min value
 const RANGE_MIN = 1
+
+// RANGE_MAX - range type with only max value
 const RANGE_MAX = 2
 
+// Range value struct for RangeFilter
 type Range struct {
 	Min  float64
 	Max  float64
 	Type int
 }
 
+// RangeFilter filter facet data by field value range (numeric values)
 type RangeFilter struct {
 	FieldName string
 	Values    Range
 }
 
+// GetFieldName - get field name
 func (filter *RangeFilter) GetFieldName() string {
 	return filter.FieldName
 }
 
+// FilterResults - filter facet field data
 func (filter *RangeFilter) FilterResults(field *index.Field, inputKeys map[int64]struct{}) (result map[int64]struct{}, err error) {
 	limitData := make(map[int64]struct{})
 	var value float64

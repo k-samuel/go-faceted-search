@@ -7,16 +7,19 @@ import (
 	"sort"
 )
 
+// FieldSorter - sorter for sorting facet data by field
 type FieldSorter struct {
 	index *index.Index
 }
 
+// NewFieldSorter - sorter constructor
 func NewFieldSorter(index *index.Index) *FieldSorter {
 	var sorter FieldSorter
 	sorter.index = index
 	return &sorter
 }
 
+// Sort - sort faceted search results by field using index data
 func (sorter *FieldSorter) Sort(results []int64, field string, direction int) (result []int64, err error) {
 
 	if !sorter.index.HasField(field) {
@@ -24,7 +27,7 @@ func (sorter *FieldSorter) Sort(results []int64, field string, direction int) (r
 		return nil, err
 	}
 
-	fieldData, _ := sorter.index.GetFieldData(field)
+	fieldData := sorter.index.GetField(field)
 	s := make([]string, 0, len(fieldData.Values))
 	for name := range fieldData.Values {
 		s = append(s, name)
