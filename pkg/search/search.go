@@ -9,6 +9,7 @@ import (
 	"sync"
 )
 
+// Search - faceted search
 type Search struct {
 	index *index.Index
 }

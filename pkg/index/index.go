@@ -51,6 +51,7 @@ func (index *Index) GetFields() map[string]*Field {
 	return index.fields
 }
 
+// Add - add record to index
 func (index *Index) Add(id int64, record map[string]interface{}) {
 	index.mu.Lock()
 	index.ids = append(index.ids, id)
@@ -137,9 +138,8 @@ func getValueString(val interface{}) string {
 	if s, ok := val.(bool); ok {
 		if s {
 			return "1"
-		} else {
-			return "0"
 		}
+		return "0"
 	}
 
 	if s, ok := val.(string); ok {
