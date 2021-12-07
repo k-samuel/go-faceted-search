@@ -1,28 +1,32 @@
-package facet
+package test
 
 import (
+	"github.com/k-samuel/go-faceted-search/pkg/filter"
+	"github.com/k-samuel/go-faceted-search/pkg/index"
+	"github.com/k-samuel/go-faceted-search/pkg/search"
+	"github.com/k-samuel/go-faceted-search/pkg/utils"
 	"reflect"
 	"testing"
 )
 
 func TestFind(t *testing.T) {
-	search := getSearch()
-	filters := []FilterInterface{
-		&ValueFilter{FieldName: "vendor", Values: []string{"Samsung", "Apple"}},
-		&ValueFilter{FieldName: "sale", Values: []string{"1"}},
-		&RangeFilter{FieldName: "cam_mp", Values: Range{Min: 16, Type: RANGE_MIN}},
-		&RangeFilter{FieldName: "price", Values: Range{Max: 80000, Type: RANGE_MAX}},
+	facet := getSearch()
+	filters := []filter.FilterInterface{
+		&filter.ValueFilter{FieldName: "vendor", Values: []string{"Samsung", "Apple"}},
+		&filter.ValueFilter{FieldName: "sale", Values: []string{"1"}},
+		&filter.RangeFilter{FieldName: "cam_mp", Values: filter.Range{Min: 16, Type: filter.RANGE_MIN}},
+		&filter.RangeFilter{FieldName: "price", Values: filter.Range{Max: 80000, Type: filter.RANGE_MAX}},
 	}
 
-	res, _ := search.Find(filters, []int64{})
-	exp := flipInt64ToMap([]int64{3, 4})
+	res, _ := facet.Find(filters, []int64{})
+	exp := utils.FlipInt64ToMap([]int64{3, 4})
 
-	if !reflect.DeepEqual(exp, flipInt64ToMap(res)) {
+	if !reflect.DeepEqual(exp, utils.FlipInt64ToMap(res)) {
 		t.Errorf("results not match\nGot:\n%v\nExpected:\n%v", res, exp)
 	}
 
-	res, _ = search.Find(
-		[]FilterInterface{&ValueFilter{FieldName: "vendor", Values: []string{"Google"}}},
+	res, _ = facet.Find(
+		[]filter.FilterInterface{&filter.ValueFilter{FieldName: "vendor", Values: []string{"Google"}}},
 		[]int64{},
 	)
 
@@ -34,23 +38,23 @@ func TestFind(t *testing.T) {
 
 func TestFindWithLimit(t *testing.T) {
 
-	search := getSearch()
+	facet := getSearch()
 
-	filters := make([]FilterInterface, 0, 1)
-	filters = append(filters, &ValueFilter{FieldName: "vendor", Values: []string{"Samsung", "Apple"}})
+	filters := make([]filter.FilterInterface, 0, 1)
+	filters = append(filters, &filter.ValueFilter{FieldName: "vendor", Values: []string{"Samsung", "Apple"}})
 
-	res, _ := search.Find(filters, []int64{1, 3})
-	exp := flipInt64ToMap([]int64{1, 3})
+	res, _ := facet.Find(filters, []int64{1, 3})
+	exp := utils.FlipInt64ToMap([]int64{1, 3})
 
-	if !reflect.DeepEqual(exp, flipInt64ToMap(res)) {
+	if !reflect.DeepEqual(exp, utils.FlipInt64ToMap(res)) {
 		t.Errorf("results not match\nGot:\n%v\nExpected:\n%v", exp, res)
 	}
 }
 
 func TestGetAggregate(t *testing.T) {
 	search := getSearch()
-	filters := make([]FilterInterface, 0, 1)
-	filters = append(filters, &ValueFilter{FieldName: "color", Values: []string{"black"}})
+	filters := make([]filter.FilterInterface, 0, 1)
+	filters = append(filters, &filter.ValueFilter{FieldName: "color", Values: []string{"black"}})
 
 	res, _ := search.AggregateFilters(filters, []int64{})
 	exp := map[string]map[string]int{
@@ -86,8 +90,8 @@ func TestGetAggregate(t *testing.T) {
 }
 
 func TestAggregateMultiFilter(t *testing.T) {
-	index := NewIndex()
-	search := NewSearch(index)
+	idx := index.NewIndex()
+	facet := search.NewSearch(idx)
 	data := []map[string]interface{}{
 		{"color": "black", "size": 7, "group": "A"},
 		{"color": "black", "size": 8, "group": "A"},
@@ -96,16 +100,16 @@ func TestAggregateMultiFilter(t *testing.T) {
 		{"color": "black", "size": 7, "group": "C"},
 	}
 	for i, v := range data {
-		index.Add(int64(i), v)
+		idx.Add(int64(i), v)
 	}
 
-	filters := []FilterInterface{
-		&ValueFilter{FieldName: "color", Values: []string{"black"}},
-		&ValueFilter{FieldName: "size", Values: []string{"7"}},
+	filters := []filter.FilterInterface{
+		&filter.ValueFilter{FieldName: "color", Values: []string{"black"}},
+		&filter.ValueFilter{FieldName: "size", Values: []string{"7"}},
 	}
 
-	res, _ := search.Find(filters, []int64{})
-	info, _ := search.AggregateFilters(filters, []int64{})
+	res, _ := facet.Find(filters, []int64{})
+	info, _ := facet.AggregateFilters(filters, []int64{})
 	exp := map[string]map[string]int{
 		"color": {"black": 2, "white": 1, "yellow": 1},
 		"size":  {"7": 2, "8": 1},
@@ -118,7 +122,7 @@ func TestAggregateMultiFilter(t *testing.T) {
 }
 
 func TestAggregateNoFilter(t *testing.T) {
-	index := NewIndex()
+	idx := index.NewIndex()
 	data := []map[string]interface{}{
 		{"color": "black", "size": 7, "group": "A"},
 		{"color": "black", "size": 8, "group": "A"},
@@ -127,11 +131,11 @@ func TestAggregateNoFilter(t *testing.T) {
 		{"color": "black", "size": 7, "group": "C"},
 	}
 	for i, v := range data {
-		index.Add(int64(i), v)
+		idx.Add(int64(i), v)
 	}
-	search := NewSearch(index)
+	facet := search.NewSearch(idx)
 
-	res, _ := search.AggregateFilters([]FilterInterface{}, []int64{})
+	res, _ := facet.AggregateFilters([]filter.FilterInterface{}, []int64{})
 	exp := map[string]map[string]int{
 		"color": {"black": 3, "white": 1, "yellow": 1},
 		"size":  {"7": 4, "8": 1},
@@ -204,17 +208,17 @@ func getTestData() []map[string]interface{} {
 	return data
 }
 
-func getSearch() *Search {
-	index := NewIndex()
-	search := NewSearch(index)
+func getSearch() *search.Search {
+	idx := index.NewIndex()
+	facet := search.NewSearch(idx)
 	records := getTestData()
 
 	for _, v := range records {
 		id := v["id"]
 		delete(v, "id")
 		if dat, ok := id.(int); ok {
-			index.Add(int64(dat), v)
+			idx.Add(int64(dat), v)
 		}
 	}
-	return search
+	return facet
 }

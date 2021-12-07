@@ -1,17 +1,20 @@
-package facet
+package search
 
 import (
 	"context"
+	"github.com/k-samuel/go-faceted-search/pkg/filter"
+	"github.com/k-samuel/go-faceted-search/pkg/index"
+	"github.com/k-samuel/go-faceted-search/pkg/utils"
 	"runtime"
 	"sync"
 )
 
 type Search struct {
-	index *Index
+	index *index.Index
 }
 
 // NewSearch Create new search instance
-func NewSearch(index *Index) *Search {
+func NewSearch(index *index.Index) *Search {
 	var search Search
 	search.index = index
 	return &search
@@ -23,11 +26,11 @@ type filterCountInfo struct {
 }
 
 // Find records using filters, limit search using list of recordId (optional)
-func (search *Search) Find(filters []FilterInterface, inputRecords []int64) (result []int64, err error) {
+func (search *Search) Find(filters []filter.FilterInterface, inputRecords []int64) (result []int64, err error) {
 
 	input := make(map[int64]struct{})
 	if len(inputRecords) > 0 {
-		input = flipInt64ToMap(inputRecords)
+		input = utils.FlipInt64ToMap(inputRecords)
 	}
 
 	mapResult, err := search.findRecords(filters, input)
@@ -45,16 +48,16 @@ func (search *Search) Find(filters []FilterInterface, inputRecords []int64) (res
 	return result, err
 }
 
-func (search *Search) findRecords(filters []FilterInterface, inputRecords map[int64]struct{}) (result map[int64]struct{}, err error) {
+func (search *Search) findRecords(filters []filter.FilterInterface, inputRecords map[int64]struct{}) (result map[int64]struct{}, err error) {
 
 	result = make(map[int64]struct{})
 	iLen := len(inputRecords)
 
 	// return all records for empty filters
 	if len(filters) == 0 {
-		total := search.index.GetAllRecordId()
+		total := search.index.GetIdList()
 		if iLen > 0 {
-			return intersectRecAndMapKeysToMap(total, inputRecords), err
+			return utils.IntersectRecAndMapKeysToMap(total, inputRecords), err
 		}
 		for _, v := range total {
 			result[v] = struct{}{}
@@ -79,15 +82,15 @@ func (search *Search) findRecords(filters []FilterInterface, inputRecords map[in
 }
 
 // AggregateFilters - find acceptable filter values
-func (search *Search) AggregateFilters(filters []FilterInterface, inputRecords []int64) (result map[string]map[string]int, err error) {
+func (search *Search) AggregateFilters(filters []filter.FilterInterface, inputRecords []int64) (result map[string]map[string]int, err error) {
 
 	input := make(map[int64]struct{})
 	if len(inputRecords) > 0 {
-		input = flipInt64ToMap(inputRecords)
+		input = utils.FlipInt64ToMap(inputRecords)
 	}
 
 	result = make(map[string]map[string]int)
-	indexedFilters := make(map[string]FilterInterface)
+	indexedFilters := make(map[string]filter.FilterInterface)
 
 	indexedFilteredRecords := make(map[int64]struct{})
 
@@ -115,14 +118,14 @@ func (search *Search) AggregateFilters(filters []FilterInterface, inputRecords [
 		// aggregate fields in goroutines
 		for i := 0; i < runtime.NumCPU(); i++ {
 			wg.Add(1)
-			go aggregateField(in, out, ctx, errChan, wg, indexedFilters, indexedFilteredRecords, input, search)
+			go search.aggregateField(in, out, ctx, errChan, wg, indexedFilters, indexedFilteredRecords, input)
 		}
 		wg.Wait()
 		close(out)
 	}()
 
 	// send fields into aggregation queue
-	for name := range search.index.fields {
+	for name := range search.index.GetFields() {
 		in <- name
 	}
 	close(in)
@@ -151,23 +154,23 @@ Loop:
 }
 
 // aggregateField - aggregation goroutine
-func aggregateField(
+func (search *Search) aggregateField(
 	in chan string, // input channel
 	out chan *filterCountInfo, // results channel
 	ctx context.Context, // cancel context
 	errChan chan error, // channel for error messages
 	wg *sync.WaitGroup,
-	indexedFilters map[string]FilterInterface, // filters indexed by field name
+	indexedFilters map[string]filter.FilterInterface, // filters indexed by field name
 	indexedFilteredRecords map[int64]struct{}, // Total list of record id suitable for filters conditions
 	inputRecords map[int64]struct{}, // input record id to search in
-	search *Search, // search object
-
 ) {
 	defer wg.Done()
-	var filtersCopy map[string]FilterInterface
+	var filtersCopy map[string]filter.FilterInterface
 	var recordIds map[int64]struct{}
-	var field *Field
+	var field *index.Field
 	var err error
+
+	fields := search.index.GetFields()
 
 	for {
 		select {
@@ -182,11 +185,11 @@ func aggregateField(
 
 			result := &filterCountInfo{field: fieldName, data: make(map[string]int)}
 
-			field = search.index.fields[fieldName]
+			field = fields[fieldName]
 			if len(indexedFilters) == 0 && len(inputRecords) == 0 {
 				// count values
-				for val, valueObj := range field.values {
-					result.data[val] = len(valueObj.ids)
+				for val, valueObj := range field.Values {
+					result.data[val] = len(valueObj.Ids)
 				}
 				out <- result
 				runtime.Gosched()
@@ -209,9 +212,9 @@ func aggregateField(
 				recordIds = indexedFilteredRecords
 			}
 
-			for vName, vList := range field.values {
+			for vName, vList := range field.Values {
 				// get records count for filter field value
-				intersect := intersectInt64MapKeysLen(vList.ids, recordIds)
+				intersect := utils.IntersectInt64MapKeysLen(vList.Ids, recordIds)
 				if intersect > 0 {
 					result.data[vName] = intersect
 				}
@@ -222,56 +225,18 @@ func aggregateField(
 	}
 }
 
-func extractFilters(filters map[string]FilterInterface) []FilterInterface {
-	var result = make([]FilterInterface, 0, len(filters))
+func extractFilters(filters map[string]filter.FilterInterface) []filter.FilterInterface {
+	var result = make([]filter.FilterInterface, 0, len(filters))
 	for _, filter := range filters {
 		result = append(result, filter)
 	}
 	return result
 }
 
-func flipInt64ToMap(list []int64) map[int64]struct{} {
-	result := make(map[int64]struct{})
-	for _, v := range list {
-		result[v] = struct{}{}
-	}
-	return result
-}
-
-func copyInt64Map(input map[int64]struct{}) map[int64]struct{} {
-	result := make(map[int64]struct{})
+func copyFilterMap(input map[string]filter.FilterInterface) map[string]filter.FilterInterface {
+	result := make(map[string]filter.FilterInterface)
 	for k, v := range input {
 		result[k] = v
-	}
-	return result
-}
-
-func copyFilterMap(input map[string]FilterInterface) map[string]FilterInterface {
-	result := make(map[string]FilterInterface)
-	for k, v := range input {
-		result[k] = v
-	}
-	return result
-}
-
-// intersectRecAndMapKeys Intersection of records ids and filter list
-func intersectRecAndMapKeys(records []int64, keys map[int64]struct{}) []int64 {
-	result := make([]int64, 0, len(keys))
-	for _, v := range records {
-		if _, ok := keys[v]; ok {
-			result = append(result, v)
-		}
-	}
-	return result
-}
-
-// intersectRecAndMapKeys Intersection of records ids and filter list
-func intersectRecAndMapKeysToMap(records []int64, keys map[int64]struct{}) map[int64]struct{} {
-	result := make(map[int64]struct{})
-	for _, v := range records {
-		if _, ok := keys[v]; ok {
-			result[v] = struct{}{}
-		}
 	}
 	return result
 }

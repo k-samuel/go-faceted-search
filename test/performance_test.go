@@ -1,10 +1,14 @@
-package facet
+package test
 
 import (
 	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/k-samuel/go-faceted-search/pkg/filter"
+	"github.com/k-samuel/go-faceted-search/pkg/index"
+	"github.com/k-samuel/go-faceted-search/pkg/search"
+	"github.com/k-samuel/go-faceted-search/pkg/sorter"
 	"math/rand"
 	"os"
 	"runtime"
@@ -13,7 +17,7 @@ import (
 	"time"
 )
 
-var index *Index
+var testIndex *index.Index
 var datasetFilePrefix = ".test.dataset."
 var indexSize uint64
 var indexLoad time.Duration
@@ -25,7 +29,7 @@ func init() {
 	if _, err := os.Stat(datasetFile); errors.Is(err, os.ErrNotExist) {
 		CreateDataset()
 	}
-	index = CreateIndex()
+	testIndex = CreateIndex()
 }
 
 func CreateDataset() {
@@ -94,15 +98,15 @@ func CreateDataset() {
 	fmt.Println("Dataset: ", time.Since(start))
 }
 
-func CreateIndex() *Index {
+func CreateIndex() *index.Index {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	startM := m.Alloc
 	start := time.Now()
 	var result map[string]interface{}
 
-	var index *Index
-	index = NewIndex()
+	var localIndex *index.Index
+	localIndex = index.NewIndex()
 
 	file, err := os.Open(datasetFile)
 	check(err)
@@ -113,13 +117,13 @@ func CreateIndex() *Index {
 		json.Unmarshal([]byte(scanner.Text()), &result)
 		id := int64(result["id"].(float64))
 		delete(result, "id")
-		index.Add(id, result)
+		localIndex.Add(id, result)
 	}
 	indexLoad = time.Since(start)
 	runtime.GC()
 	runtime.ReadMemStats(&m)
 	indexSize = m.Alloc - startM
-	return index
+	return localIndex
 }
 
 func randNum(min, max int64) int64 {
@@ -152,23 +156,23 @@ func check(e error) {
 
 func BenchmarkFind(b *testing.B) {
 	var recordFilter []int64
-	search := NewSearch(index)
-	filters := make([]FilterInterface, 0, 3)
-	filters = append(filters, &ValueFilter{FieldName: "color", Values: []string{"black"}})
-	filters = append(filters, &ValueFilter{FieldName: "warehouse", Values: []string{"789", "45", "65", "1", "10"}})
-	filters = append(filters, &ValueFilter{FieldName: "type", Values: []string{"normal", "middle"}})
-	search.Find(filters, recordFilter)
+	searchObj := search.NewSearch(testIndex)
+	filters := make([]filter.FilterInterface, 0, 3)
+	filters = append(filters, &filter.ValueFilter{FieldName: "color", Values: []string{"black"}})
+	filters = append(filters, &filter.ValueFilter{FieldName: "warehouse", Values: []string{"789", "45", "65", "1", "10"}})
+	filters = append(filters, &filter.ValueFilter{FieldName: "type", Values: []string{"normal", "middle"}})
+	searchObj.Find(filters, recordFilter)
 }
 
 func BenchmarkAggregateFilters(b *testing.B) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	var recordFilter []int64
-	search := NewSearch(index)
-	filters := make([]FilterInterface, 0, 3)
-	filters = append(filters, &ValueFilter{FieldName: "color", Values: []string{"black"}})
-	filters = append(filters, &ValueFilter{FieldName: "warehouse", Values: []string{"789", "45", "65", "1", "10"}})
-	filters = append(filters, &ValueFilter{FieldName: "type", Values: []string{"normal", "middle"}})
-	search.AggregateFilters(filters, recordFilter)
+	searchObj := search.NewSearch(testIndex)
+	filters := make([]filter.FilterInterface, 0, 3)
+	filters = append(filters, &filter.ValueFilter{FieldName: "color", Values: []string{"black"}})
+	filters = append(filters, &filter.ValueFilter{FieldName: "warehouse", Values: []string{"789", "45", "65", "1", "10"}})
+	filters = append(filters, &filter.ValueFilter{FieldName: "type", Values: []string{"normal", "middle"}})
+	searchObj.AggregateFilters(filters, recordFilter)
 }
 
 func BenchmarkSearch(b *testing.B) {
@@ -179,23 +183,23 @@ func BenchmarkSearch(b *testing.B) {
 	fmt.Printf("Alloc: %v MiB ", bToMb(indexSize))
 	fmt.Print("Load: ", indexLoad)
 
-	search := NewSearch(index)
-	filters := make([]FilterInterface, 0, 3)
-	filters = append(filters, &ValueFilter{FieldName: "color", Values: []string{"black"}})
-	filters = append(filters, &ValueFilter{FieldName: "warehouse", Values: []string{"789", "45", "65", "1", "10"}})
-	filters = append(filters, &ValueFilter{FieldName: "type", Values: []string{"normal", "middle"}})
+	searchObj := search.NewSearch(testIndex)
+	filters := make([]filter.FilterInterface, 0, 3)
+	filters = append(filters, &filter.ValueFilter{FieldName: "color", Values: []string{"black"}})
+	filters = append(filters, &filter.ValueFilter{FieldName: "warehouse", Values: []string{"789", "45", "65", "1", "10"}})
+	filters = append(filters, &filter.ValueFilter{FieldName: "type", Values: []string{"normal", "middle"}})
 
 	var recordFilter []int64
 	start = time.Now()
-	res, _ := search.Find(filters, recordFilter)
+	res, _ := searchObj.Find(filters, recordFilter)
 	duration := time.Since(start)
 	fmt.Print(" Find: ", duration)
 	fmt.Printf(" Results: %d ", len(res))
-	fmt.Print(" Items: ", index.GetItemsCount())
+	fmt.Print(" Items: ", testIndex.GetItemsCount())
 
-	var sorter = NewFieldSorter(index)
+	var sorterObj = sorter.NewFieldSorter(testIndex)
 	start = time.Now()
-	sortedRecords, err := sorter.Sort(res, "quantity", SORT_DESC)
+	sortedRecords, err := sorterObj.Sort(res, "quantity", sorter.SORT_DESC)
 	if err != nil {
 		panic(err)
 	}
@@ -203,7 +207,7 @@ func BenchmarkSearch(b *testing.B) {
 	fmt.Print(" Sort by field: ", duration, " sorted: ", len(sortedRecords))
 
 	start = time.Now()
-	filterRes, _ := search.AggregateFilters(filters, recordFilter)
+	filterRes, _ := searchObj.AggregateFilters(filters, recordFilter)
 	duration = time.Since(start)
 	fmt.Println(" Aggregate filters: ", duration, " filters: ", len(filterRes))
 }

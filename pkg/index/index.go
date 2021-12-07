@@ -1,4 +1,4 @@
-package facet
+package index
 
 import (
 	"fmt"
@@ -20,9 +20,9 @@ import (
  *               ]
  *	         },
  *           'field2 => ...
-*      ]
+ *      ]
  *   }
-*/
+ */
 
 // Index - top level structure for facet data
 type Index struct {
@@ -39,16 +39,16 @@ func NewIndex() *Index {
 	return &index
 }
 
-// GetData get fields data
-func (index *Index) GetData() map[string]*Field {
-	return index.fields
-}
-
-// GetAllRecordId get all record id stored in index
-func (index *Index) GetAllRecordId() []int64 {
+// GetIdList get all record id stored in index
+func (index *Index) GetIdList() []int64 {
 	data := make([]int64, len(index.ids))
 	copy(data, index.ids)
 	return data
+}
+
+// GetFields get fields map
+func (index *Index) GetFields() map[string]*Field {
+	return index.fields
 }
 
 func (index *Index) Add(id int64, record map[string]interface{}) {
@@ -67,7 +67,7 @@ func (index *Index) HasField(name string) bool {
 
 func (index *Index) createField(name string) *Field {
 	index.mu.Lock()
-	index.fields[name] = &Field{values: make(map[string]*Value)}
+	index.fields[name] = &Field{Values: make(map[string]*Value)}
 	index.mu.Unlock()
 	return index.fields[name]
 }
@@ -164,48 +164,4 @@ func getValueString(val interface{}) string {
 
 	fmt.Printf("undefined value type %T->%q\n", val, val)
 	panic("undefined value type")
-}
-
-// Field - struct to store value list for index field
-type Field struct {
-	values map[string]*Value
-	mu     sync.Mutex
-}
-
-// HasValues - check if field has any value
-func (field *Field) HasValues() bool {
-	if len(field.values) > 0 {
-		return true
-	}
-	return false
-}
-
-func (field *Field) HasValue(name string) bool {
-	_, ok := field.values[name]
-	return ok
-}
-
-func (field *Field) createValue(name string) *Value {
-	field.mu.Lock()
-	field.values[name] = &Value{ids: make(map[int64]struct{})}
-	field.mu.Unlock()
-	return field.values[name]
-}
-
-// GetValue get field value by value string identifier
-func (field *Field) GetValue(name string) *Value {
-	return field.values[name]
-}
-
-// Value - list of record id for value
-type Value struct {
-	ids map[int64]struct{}
-	mu  sync.Mutex
-}
-
-// addId - add record id into value struct
-func (value *Value) addId(id int64) {
-	value.mu.Lock()
-	value.ids[id] = struct{}{}
-	value.mu.Unlock()
 }

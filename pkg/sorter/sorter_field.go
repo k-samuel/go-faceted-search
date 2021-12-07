@@ -1,24 +1,17 @@
-package facet
+package sorter
 
 import (
 	"errors"
+	"github.com/k-samuel/go-faceted-search/pkg/index"
+	"github.com/k-samuel/go-faceted-search/pkg/utils"
 	"sort"
 )
 
-const SORT_ASC int = 0
-const SORT_DESC int = 1
-
-type SorterInterface interface {
-	NewSorter(index Index) SorterInterface
-	GetFieldName() string
-	Sort(results []int64, field string, direction int) []int64
-}
-
 type FieldSorter struct {
-	index *Index
+	index *index.Index
 }
 
-func NewFieldSorter(index *Index) *FieldSorter {
+func NewFieldSorter(index *index.Index) *FieldSorter {
 	var sorter FieldSorter
 	sorter.index = index
 	return &sorter
@@ -32,8 +25,8 @@ func (sorter *FieldSorter) Sort(results []int64, field string, direction int) (r
 	}
 
 	fieldData, _ := sorter.index.GetFieldData(field)
-	s := make([]string, 0, len(fieldData.values))
-	for name := range fieldData.values {
+	s := make([]string, 0, len(fieldData.Values))
+	for name := range fieldData.Values {
 		s = append(s, name)
 	}
 	sort.Strings(s)
@@ -55,8 +48,8 @@ func (sorter *FieldSorter) Sort(results []int64, field string, direction int) (r
 	resultMap := make(map[int64]struct{})
 
 	for _, v := range s {
-		if _, ok := fieldData.values[v]; ok {
-			ids := intersectInt64MapKeys(fieldData.values[v].ids, resultsMap)
+		if _, ok := fieldData.Values[v]; ok {
+			ids := utils.IntersectInt64MapKeys(fieldData.Values[v].Ids, resultsMap)
 			if len(ids) == 0 {
 				continue
 			}
