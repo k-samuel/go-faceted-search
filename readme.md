@@ -33,8 +33,15 @@ It can cause problems in concurrent writes and reads.
 
 ## Example
 ```go
-    index := facet.NewIndex()
-    search := facet.NewSearch(index)
+    package main
+    import (
+    "github.com/k-samuel/go-faceted-search/pkg/filter"
+    "github.com/k-samuel/go-faceted-search/pkg/index"
+    "github.com/k-samuel/go-faceted-search/pkg/search"
+    )
+
+    idx := index.NewIndex()
+    facet := search.NewSearch(idx)
     // example data
     data := []map[string]interface{}{
         {"color": "black", "size": 7, "group": "A"},
@@ -45,18 +52,18 @@ It can cause problems in concurrent writes and reads.
     }
     // Add values using i as recordId
     for i, v := range data {
-        index.Add(int64(i), v)
+        idx.Add(int64(i), v)
     }
 	
     // create some filters
-    filters := []facet.FilterInterface{
-        & facet.ValueFilter{FieldName: "color", Values: []string{"black"}},
-        & facet.ValueFilter{FieldName: "size", Values: []string{"7"}},
+    filters := []filter.FilterInterface{
+        & filter.ValueFilter{FieldName: "color", Values: []string{"black"}},
+        & filter.ValueFilter{FieldName: "size", Values: []string{"7"}},
     }
     // find records
-    res, _ := search.Find(filters, []int64{})
+    res, _ := facet.Find(filters, []int64{})
     // aggregate filters
-    info, _ := search.AggregateFilters(filters, []int64{})
+    info, _ := facet.AggregateFilters(filters, []int64{})
 ```
 
 ### Test
