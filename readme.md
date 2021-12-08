@@ -34,6 +34,7 @@ It can cause problems in concurrent writes and reads.
 ## Example
 ```go
     package main
+
     import (
     "github.com/k-samuel/go-faceted-search/pkg/filter"
     "github.com/k-samuel/go-faceted-search/pkg/index"
