@@ -45,9 +45,9 @@ func (filter *ValueFilter) FilterResults(field *index.Field, inputKeys map[int64
 				if _, ok := inputKeys[key]; ok {
 					result[key] = struct{}{}
 				}
-			} else {
-				result[key] = struct{}{}
+				continue
 			}
+			result[key] = struct{}{}
 		}
 	}
 	return result, err
