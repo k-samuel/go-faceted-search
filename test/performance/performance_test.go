@@ -19,7 +19,7 @@ import (
 
 var testIndex *index.Index
 var datasetFilePrefix = ".test.dataset."
-var results = 100000
+var results = 10000
 var datasetFile string
 
 func init() {
