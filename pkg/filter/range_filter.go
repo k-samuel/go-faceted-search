@@ -35,7 +35,11 @@ func (filter *RangeFilter) GetFieldName() string {
 
 // FilterResults - filter facet field data
 func (filter *RangeFilter) FilterResults(field *index.Field, inputKeys map[int64]struct{}) (result map[int64]struct{}, err error) {
-	limitData := make(map[int64]struct{})
+	var mapLen = len(inputKeys)
+	if mapLen == 0 {
+		mapLen = 100
+	}
+	limitData := make(map[int64]struct{}, mapLen)
 	var value float64
 	// collect list for different values of one property
 	for val, valObject := range field.Values {

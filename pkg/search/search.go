@@ -26,6 +26,11 @@ type filterCountInfo struct {
 	data  map[string]int
 }
 
+// GetIndex get index storage
+func (search *Search) GetIndex() *index.Index {
+	return search.index
+}
+
 // Find records using filters, limit search using list of recordId (optional)
 func (search *Search) Find(filters []filter.FilterInterface, inputRecords []int64) (result []int64, err error) {
 
@@ -51,15 +56,16 @@ func (search *Search) Find(filters []filter.FilterInterface, inputRecords []int6
 
 func (search *Search) findRecords(filters []filter.FilterInterface, inputRecords map[int64]struct{}) (result map[int64]struct{}, err error) {
 
-	result = make(map[int64]struct{})
 	iLen := len(inputRecords)
 
 	// return all records for empty filters
 	if len(filters) == 0 {
-		total := search.index.GetIdList()
+		total := search.index.Ids()
+
 		if iLen > 0 {
 			return utils.IntersectRecAndMapKeysToMap(total, inputRecords), err
 		}
+		result = make(map[int64]struct{}, len(total))
 		for _, v := range total {
 			result[v] = struct{}{}
 		}
@@ -75,7 +81,7 @@ func (search *Search) findRecords(filters []filter.FilterInterface, inputRecords
 		}
 		field := search.index.GetField(fieldName)
 		if !field.HasValues() {
-			return result, err
+			return map[int64]struct{}{}, err
 		}
 		result, err = filter.FilterResults(field, result)
 	}
@@ -90,10 +96,10 @@ func (search *Search) AggregateFilters(filters []filter.FilterInterface, inputRe
 		input = utils.FlipInt64ToMap(inputRecords)
 	}
 
-	result = make(map[string]map[string]int)
-	indexedFilters := make(map[string]filter.FilterInterface)
-
+	indexedFilters := make(map[string]filter.FilterInterface, len(filters))
 	indexedFilteredRecords := make(map[int64]struct{})
+	searchFields := search.index.GetFields()
+	result = make(map[string]map[string]int, len(searchFields))
 
 	if len(filters) > 0 {
 		// index filters by field
@@ -126,7 +132,7 @@ func (search *Search) AggregateFilters(filters []filter.FilterInterface, inputRe
 	}()
 
 	// send fields into aggregation queue
-	for name := range search.index.GetFields() {
+	for name := range searchFields {
 		in <- name
 	}
 	close(in)

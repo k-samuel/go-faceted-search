@@ -70,7 +70,7 @@ func IntersectRecAndMapKeys(records []int64, keys map[int64]struct{}) []int64 {
 
 // IntersectRecAndMapKeysToMap Intersection of records ids and filter list
 func IntersectRecAndMapKeysToMap(records []int64, keys map[int64]struct{}) map[int64]struct{} {
-	result := make(map[int64]struct{})
+	result := make(map[int64]struct{}, len(keys))
 	for _, v := range records {
 		if _, ok := keys[v]; ok {
 			result[v] = struct{}{}

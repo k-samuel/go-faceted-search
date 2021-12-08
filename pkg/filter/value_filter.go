@@ -19,11 +19,16 @@ func (filter *ValueFilter) GetFieldName() string {
 func (filter *ValueFilter) FilterResults(field *index.Field, inputKeys map[int64]struct{}) (result map[int64]struct{}, err error) {
 
 	var list *index.Value
-	result = make(map[int64]struct{})
+	var mapLen = len(inputKeys)
+	var hasInput = true
+	if mapLen == 0 {
+		hasInput = false
+		mapLen = 100
+	}
 
-	hasInput := len(inputKeys) > 0
+	result = make(map[int64]struct{}, mapLen)
 
-	// collect list for record id for different values of one field
+	// collect list of record id for different values of one field
 	for _, val := range filter.Values {
 
 		if !field.HasValue(val) {

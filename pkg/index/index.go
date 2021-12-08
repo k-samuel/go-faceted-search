@@ -46,6 +46,11 @@ func (index *Index) GetIdList() []int64 {
 	return data
 }
 
+// Ids get pointer to list of record id (unsafe)
+func (index *Index) Ids() []int64 {
+	return index.ids
+}
+
 // GetFields get fields map
 func (index *Index) GetFields() map[string]*Field {
 	return index.fields

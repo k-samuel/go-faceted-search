@@ -25,4 +25,4 @@ jobs:
         run: go test -v -race ./test
 
       - name: Bench
-        run: go test ./test -race -bench . -benchmem
+        run: go test ./test/performance -race -bench . -benchmem

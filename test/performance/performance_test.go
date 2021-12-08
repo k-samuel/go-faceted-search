@@ -1,4 +1,4 @@
-package test
+package performance
 
 import (
 	"bufio"
@@ -19,12 +19,13 @@ import (
 
 var testIndex *index.Index
 var datasetFilePrefix = ".test.dataset."
-var indexSize uint64
-var indexLoad time.Duration
 var results = 100000
 var datasetFile string
 
 func init() {
+
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
 	datasetFile = datasetFilePrefix + strconv.Itoa(results)
 	if _, err := os.Stat(datasetFile); errors.Is(err, os.ErrNotExist) {
 		CreateDataset()
@@ -98,6 +99,14 @@ func CreateDataset() {
 	fmt.Println("Dataset: ", time.Since(start))
 }
 
+func createFilters() []filter.FilterInterface {
+	filters := make([]filter.FilterInterface, 0, 3)
+	filters = append(filters, &filter.ValueFilter{FieldName: "color", Values: []string{"black"}})
+	filters = append(filters, &filter.ValueFilter{FieldName: "warehouse", Values: []string{"789", "45", "65", "1", "10"}})
+	filters = append(filters, &filter.ValueFilter{FieldName: "type", Values: []string{"normal", "middle"}})
+	return filters
+}
+
 func CreateIndex() *index.Index {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
@@ -111,18 +120,22 @@ func CreateIndex() *index.Index {
 	file, err := os.Open(datasetFile)
 	check(err)
 	defer file.Close()
-
+	counter := 0
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		json.Unmarshal([]byte(scanner.Text()), &result)
 		id := int64(result["id"].(float64))
 		delete(result, "id")
 		localIndex.Add(id, result)
+		counter++
 	}
-	indexLoad = time.Since(start)
+
 	runtime.GC()
 	runtime.ReadMemStats(&m)
-	indexSize = m.Alloc - startM
+
+	fmt.Printf("Alloc: %v MiB for %v items ", bToMb(m.Alloc-startM), counter)
+	fmt.Println("Load: ", time.Since(start))
+
 	return localIndex
 }
 
@@ -149,67 +162,75 @@ func check(e error) {
 }
 
 // -----
-// go test facet -bench . -benchmem
-// go test facet -bench . -benchmem -cpuprofile=cpu.out -memprofile=mem.out -memprofilerate=1 performance_test.go
+// go test ./test/performance -bench . -benchmem
+// go test ./test/performance -bench . -benchmem -cpuprofile=cpu.out -memprofile=mem.out -memprofilerate=1 performance_test.go
 // go tool pprof -callgrind -output callgrind.c.out cpu.out
 // go tool pprof -callgrind -output callgrind.m.out mem.out
 
-func BenchmarkFind(b *testing.B) {
+func tBenchmarkFind(b *testing.B) {
 	var recordFilter []int64
-	searchObj := search.NewSearch(testIndex)
-	filters := make([]filter.FilterInterface, 0, 3)
-	filters = append(filters, &filter.ValueFilter{FieldName: "color", Values: []string{"black"}})
-	filters = append(filters, &filter.ValueFilter{FieldName: "warehouse", Values: []string{"789", "45", "65", "1", "10"}})
-	filters = append(filters, &filter.ValueFilter{FieldName: "type", Values: []string{"normal", "middle"}})
-	searchObj.Find(filters, recordFilter)
+	facet := search.NewSearch(testIndex)
+	filters := createFilters()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		facet.Find(filters, recordFilter)
+	}
 }
 
-func BenchmarkAggregateFilters(b *testing.B) {
-	runtime.GOMAXPROCS(runtime.NumCPU())
+func tBenchmarkAggregateFilters(b *testing.B) {
 	var recordFilter []int64
-	searchObj := search.NewSearch(testIndex)
-	filters := make([]filter.FilterInterface, 0, 3)
-	filters = append(filters, &filter.ValueFilter{FieldName: "color", Values: []string{"black"}})
-	filters = append(filters, &filter.ValueFilter{FieldName: "warehouse", Values: []string{"789", "45", "65", "1", "10"}})
-	filters = append(filters, &filter.ValueFilter{FieldName: "type", Values: []string{"normal", "middle"}})
-	searchObj.AggregateFilters(filters, recordFilter)
+	facet := search.NewSearch(testIndex)
+	filters := createFilters()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		facet.AggregateFilters(filters, recordFilter)
+	}
+}
+
+func tBenchmarkSort(b *testing.B) {
+	var recordFilter []int64
+	facet := search.NewSearch(testIndex)
+	filters := createFilters()
+	srt := sorter.NewIntSorter(testIndex)
+	res, _ := facet.Find(filters, recordFilter)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		srt.Sort(res, "quantity", sorter.SORT_DESC)
+	}
 }
 
 func BenchmarkSearch(b *testing.B) {
 
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
-	start := time.Now()
-	fmt.Printf("Alloc: %v MiB ", bToMb(indexSize))
-	fmt.Print("Load: ", indexLoad)
-
 	searchObj := search.NewSearch(testIndex)
-	filters := make([]filter.FilterInterface, 0, 3)
-	filters = append(filters, &filter.ValueFilter{FieldName: "color", Values: []string{"black"}})
-	filters = append(filters, &filter.ValueFilter{FieldName: "warehouse", Values: []string{"789", "45", "65", "1", "10"}})
-	filters = append(filters, &filter.ValueFilter{FieldName: "type", Values: []string{"normal", "middle"}})
+	filters := createFilters()
 
 	var recordFilter []int64
-	start = time.Now()
+	start := time.Now()
 	res, _ := searchObj.Find(filters, recordFilter)
 	duration := time.Since(start)
 	fmt.Print(" Find: ", duration)
 	fmt.Printf(" Results: %d ", len(res))
 	fmt.Print(" Items: ", testIndex.GetItemsCount())
 
-	var sorterObj = sorter.NewFieldSorter(testIndex)
+	runtime.GC()
+
+	start = time.Now()
+	filterRes, _ := searchObj.AggregateFilters(filters, recordFilter)
+	duration = time.Since(start)
+	fmt.Print(" Aggregate filters: ", duration, " filters: ", len(filterRes))
+
+	runtime.GC()
+
+	var sorterObj = sorter.NewIntSorter(testIndex)
 	start = time.Now()
 	sortedRecords, err := sorterObj.Sort(res, "quantity", sorter.SORT_DESC)
 	if err != nil {
 		panic(err)
 	}
 	duration = time.Since(start)
-	fmt.Print(" Sort by field: ", duration, " sorted: ", len(sortedRecords))
+	fmt.Println(" Sort by field: ", duration, " sorted: ", len(sortedRecords))
 
-	start = time.Now()
-	filterRes, _ := searchObj.AggregateFilters(filters, recordFilter)
-	duration = time.Since(start)
-	fmt.Println(" Aggregate filters: ", duration, " filters: ", len(filterRes))
+	runtime.GC()
 }
 
 func bToMb(b uint64) uint64 {

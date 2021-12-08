@@ -7,20 +7,20 @@ import (
 	"sort"
 )
 
-// FieldSorter - sorter for sorting facet data by field
-type FieldSorter struct {
+// StringSorter - sorter for sorting facet data by field
+type StringSorter struct {
 	index *index.Index
 }
 
-// NewFieldSorter - sorter constructor
-func NewFieldSorter(index *index.Index) *FieldSorter {
-	var sorter FieldSorter
+// NewStringSorter - sorter constructor
+func NewStringSorter(index *index.Index) *StringSorter {
+	var sorter StringSorter
 	sorter.index = index
 	return &sorter
 }
 
 // Sort - sort faceted search results by field using index data
-func (sorter *FieldSorter) Sort(results []int64, field string, direction int) (result []int64, err error) {
+func (sorter *StringSorter) Sort(results []int64, field string, direction int) (result []int64, err error) {
 
 	if !sorter.index.HasField(field) {
 		err = errors.New("sort by undefined field: " + field)
@@ -32,7 +32,6 @@ func (sorter *FieldSorter) Sort(results []int64, field string, direction int) (r
 	for name := range fieldData.Values {
 		s = append(s, name)
 	}
-	sort.Strings(s)
 
 	switch direction {
 	case SORT_ASC:
@@ -48,7 +47,8 @@ func (sorter *FieldSorter) Sort(results []int64, field string, direction int) (r
 		resultsMap[v] = struct{}{}
 	}
 
-	resultMap := make(map[int64]struct{})
+	res := make(map[int64]struct{}, len(results))
+	result = make([]int64, 0, len(results))
 
 	for _, v := range s {
 		if _, ok := fieldData.Values[v]; ok {
@@ -57,16 +57,12 @@ func (sorter *FieldSorter) Sort(results []int64, field string, direction int) (r
 				continue
 			}
 			for k := range ids {
-				if _, ok := resultMap[k]; !ok {
-					resultMap[k] = struct{}{}
+				if _, ok := res[k]; !ok {
+					res[k] = struct{}{}
+					result = append(result, k)
 				}
 			}
 		}
-	}
-
-	result = make([]int64, 0, len(resultMap))
-	for k := range resultMap {
-		result = append(result, k)
 	}
 	return result, err
 }
