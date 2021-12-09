@@ -1,7 +1,7 @@
 [![Go](https://github.com/k-samuel/go-faceted-search/actions/workflows/go.yml/badge.svg)](https://github.com/k-samuel/go-faceted-search/actions/workflows/go.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/k-samuel/go-faceted-search?style=flat-square)](https://goreportcard.com/report/github.com/k-samuel/go-faceted-search)
 [![Release](https://img.shields.io/github/release/golang-standards/project-layout.svg?style=flat-square)](https://github.com/k-samuel/go-faceted-search/releases/latest)
-# Experimental port of PHP k-samuel/faceted-search v0.2.3
+# Experimental port of PHP k-samuel/faceted-search v0.2.4
 
 PHP Library https://github.com/k-samuel/faceted-search
 
@@ -66,6 +66,10 @@ It can cause problems in concurrent writes and reads.
     // aggregate filters
     info, _ := facet.AggregateFilters(filters, []int64{})
 ```
+
+### Examples
+
+[Web Server](./example/readme.md)
 
 ### Test
 ` go test facet -coverprofile=cover.out && go tool cover -html=cover.out -o cover.html `

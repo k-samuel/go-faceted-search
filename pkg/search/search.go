@@ -117,7 +117,7 @@ func (search *Search) AggregateFilters(filters []filter.FilterInterface, inputRe
 	ctx, cancel := context.WithCancel(ctx)
 
 	wg := &sync.WaitGroup{}
-	in := make(chan string, 10)
+	in := make(chan string, len(searchFields))
 	out := make(chan *filterCountInfo, 10)
 	errChan := make(chan error)
 
