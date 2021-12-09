@@ -67,7 +67,7 @@ It can cause problems in concurrent writes and reads.
     info, _ := facet.AggregateFilters(filters, []int64{})
 ```
 
-### Examples
+### More examples
 
 [Web Server](./example/readme.md)
 
