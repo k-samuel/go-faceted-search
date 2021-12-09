@@ -16,7 +16,7 @@ Bench v1.3.2 PHP 8.1.0 + JIT + opcache (no xdebug extension)
 | 300,000         | ~242Mb   | ~0.013 s.        | ~0.113 s.                | ~0.007 s.    | 26891            |
 | 1,000,000       | ~812Mb   | ~0.064 s.        | ~0.447 s.                | ~0.037 s.    | 90520            |
 
-Bench v0.2.3 golang 1.17.3 with parallel aggregates
+Bench v0.2.4 golang 1.17.3 with parallel aggregates
 
 | Items count     | Memory   | Find             | Get Filters (aggregates) | Sort by field| Results Found    |
 |----------------:|---------:|-----------------:|-------------------------:|-------------:|-----------------:|
