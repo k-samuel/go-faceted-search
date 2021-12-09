@@ -69,7 +69,7 @@ It can cause problems in concurrent writes and reads.
 
 ### More examples
 
-[Web Server](./example/readme.md)
+[Web Server](./example/)
 
 ### Test
 ` go test facet -coverprofile=cover.out && go tool cover -html=cover.out -o cover.html `
