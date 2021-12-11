@@ -72,6 +72,19 @@ func (index *Index) HasField(name string) bool {
 	return ok
 }
 
+// GetRecordsCount - Get count of records registered for field value
+func (index *Index) GetRecordsCount(name, value string) int {
+
+	if _, ok := index.fields[name]; !ok {
+		return 0
+	}
+	fld := index.fields[name]
+	if _, ok := fld.Values[value]; !ok {
+		return 0
+	}
+	return len(fld.Values[value].Ids)
+}
+
 func (index *Index) createField(name string) *Field {
 	index.mu.Lock()
 	index.fields[name] = &Field{Values: make(map[string]*Value)}

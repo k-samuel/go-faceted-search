@@ -167,7 +167,7 @@ func check(e error) {
 // go tool pprof -callgrind -output callgrind.c.out cpu.out
 // go tool pprof -callgrind -output callgrind.m.out mem.out
 
-func BenchmarkFind(b *testing.B) {
+func tBenchmarkFind(b *testing.B) {
 	var recordFilter []int64
 	facet := search.NewSearch(testIndex)
 	filters := createFilters()
@@ -177,7 +177,7 @@ func BenchmarkFind(b *testing.B) {
 	}
 }
 
-func BenchmarkAggregateFilters(b *testing.B) {
+func tBenchmarkAggregateFilters(b *testing.B) {
 	var recordFilter []int64
 	facet := search.NewSearch(testIndex)
 	filters := createFilters()
@@ -187,7 +187,7 @@ func BenchmarkAggregateFilters(b *testing.B) {
 	}
 }
 
-func BenchmarkSort(b *testing.B) {
+func tBenchmarkSort(b *testing.B) {
 	var recordFilter []int64
 	facet := search.NewSearch(testIndex)
 	filters := createFilters()

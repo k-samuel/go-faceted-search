@@ -40,7 +40,7 @@ func (filter *ValueFilter) FilterResults(field *index.Field, inputKeys map[int64
 			continue
 		}
 
-		for key := range list.Ids {
+		for _, key := range list.Ids {
 			if hasInput {
 				if _, ok := inputKeys[key]; ok {
 					result[key] = struct{}{}

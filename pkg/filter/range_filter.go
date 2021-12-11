@@ -55,8 +55,8 @@ func (filter *RangeFilter) FilterResults(field *index.Field, inputKeys map[int64
 			continue
 		}
 
-		for k, v := range valObject.Ids {
-			limitData[k] = v
+		for _, v := range valObject.Ids {
+			limitData[v] = struct{}{}
 		}
 	}
 

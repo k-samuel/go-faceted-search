@@ -5,7 +5,9 @@ import (
 	"github.com/k-samuel/go-faceted-search/pkg/filter"
 	"github.com/k-samuel/go-faceted-search/pkg/index"
 	"github.com/k-samuel/go-faceted-search/pkg/utils"
+	"math"
 	"runtime"
+	"sort"
 	"sync"
 )
 
@@ -74,6 +76,13 @@ func (search *Search) findRecords(filters []filter.FilterInterface, inputRecords
 
 	// start value is inputRecords list
 	result = inputRecords
+
+	// Aggregates optimisation for value filters.
+	// The fewer elements after the first filtering, the fewer data copies and memory allocations in iterations
+	if len(result) == 0 && len(filters) > 1 {
+		filters = search.sortFilters(filters)
+	}
+
 	for _, filter := range filters {
 		fieldName := filter.GetFieldName()
 		if !search.index.HasField(fieldName) {
@@ -230,6 +239,51 @@ func (search *Search) aggregateField(
 			runtime.Gosched()
 		}
 	}
+}
+
+type filterCount struct {
+	count  int
+	filter filter.FilterInterface
+}
+
+func (search *Search) sortFilters(filters []filter.FilterInterface) []filter.FilterInterface {
+
+	counts := make([]*filterCount, 0, len(filters))
+
+	// count filter values
+	for index, item := range filters {
+
+		filterCnt := &filterCount{count: math.MaxInt, filter: filters[index]}
+		valFilter, ok := item.(*filter.ValueFilter)
+		counts = append(counts, filterCnt)
+		if !ok {
+			continue
+		}
+
+		fieldName := item.GetFieldName()
+
+		if !search.index.HasField(fieldName) {
+			filterCnt.count = 0
+			continue
+		}
+
+		for _, val := range valFilter.Values {
+			cnt := search.index.GetRecordsCount(fieldName, val)
+			if filterCnt.count > cnt {
+				filterCnt.count = cnt
+			}
+		}
+	}
+
+	sort.SliceStable(counts, func(i, j int) bool {
+		return counts[i].count < counts[j].count
+	})
+
+	result := make([]filter.FilterInterface, 0, len(filters))
+	for _, v := range counts {
+		result = append(result, v.filter)
+	}
+	return result
 }
 
 func extractFilters(filters map[string]filter.FilterInterface) []filter.FilterInterface {

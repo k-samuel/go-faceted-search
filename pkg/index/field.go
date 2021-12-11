@@ -24,7 +24,7 @@ func (field *Field) HasValue(name string) bool {
 
 func (field *Field) createValue(name string) *Value {
 	field.mu.Lock()
-	field.Values[name] = &Value{Ids: make(map[int64]struct{})}
+	field.Values[name] = &Value{Ids: make([]int64, 0, 100)}
 	field.mu.Unlock()
 	return field.Values[name]
 }

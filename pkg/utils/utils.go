@@ -20,20 +20,11 @@ func IntersectInt64MapKeys(a, b map[int64]struct{}) map[int64]struct{} {
 }
 
 // IntersectInt64MapKeysLen - get count of intersected values
-func IntersectInt64MapKeysLen(a, b map[int64]struct{}) int {
+func IntersectInt64MapKeysLen(a []int64, b map[int64]struct{}) int {
 	var intersectLen = 0
-
-	if len(a) < len(b) {
-		for key := range a {
-			if _, ok := b[key]; ok {
-				intersectLen++
-			}
-		}
-	} else {
-		for key := range b {
-			if _, ok := a[key]; ok {
-				intersectLen++
-			}
+	for _, key := range a {
+		if _, ok := b[key]; ok {
+			intersectLen++
 		}
 	}
 	return intersectLen

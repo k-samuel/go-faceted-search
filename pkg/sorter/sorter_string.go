@@ -52,11 +52,11 @@ func (sorter *StringSorter) Sort(results []int64, field string, direction int) (
 
 	for _, v := range s {
 		if _, ok := fieldData.Values[v]; ok {
-			ids := utils.IntersectInt64MapKeys(fieldData.Values[v].Ids, resultsMap)
+			ids := utils.IntersectRecAndMapKeys(fieldData.Values[v].Ids, resultsMap)
 			if len(ids) == 0 {
 				continue
 			}
-			for k := range ids {
+			for _, k := range ids {
 				if _, ok := res[k]; !ok {
 					res[k] = struct{}{}
 					result = append(result, k)
