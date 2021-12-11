@@ -74,8 +74,11 @@ func loadIndexes() {
 		shoeDb,
 		func(result map[string]interface{}) map[string]interface{} {
 			if s, ok := result["features"].(map[string]interface{}); ok {
+				s["category"] = result["category"]
+				s["brand"] = result["brand"]
 				return s
 			}
+
 			return nil
 		})
 
