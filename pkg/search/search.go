@@ -119,6 +119,13 @@ func (search *Search) AggregateFilters(filters []filter.FilterInterface, inputRe
 		if err != nil {
 			return result, err
 		}
+	} else {
+		if len(inputRecords) > 0 {
+			indexedFilteredRecords, err = search.findRecords(filters, input)
+			if err != nil {
+				return result, err
+			}
+		}
 	}
 
 	// Create a cancel context for stopping on error

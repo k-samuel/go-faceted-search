@@ -147,6 +147,32 @@ func TestAggregateNoFilter(t *testing.T) {
 	}
 }
 
+func TestAggregateNoFilterLimit(t *testing.T) {
+	idx := index.NewIndex()
+	data := []map[string]interface{}{
+		{"color": "black", "size": 7, "group": "A"},
+		{"color": "black", "size": 8, "group": "A"},
+		{"color": "white", "size": 7, "group": "B"},
+		{"color": "yellow", "size": 7, "group": "C"},
+		{"color": "black", "size": 7, "group": "C"},
+	}
+	for i, v := range data {
+		idx.Add(int64(i+1), v)
+	}
+	facet := search.NewSearch(idx)
+
+	res, _ := facet.AggregateFilters([]filter.FilterInterface{}, []int64{1, 2})
+	exp := map[string]map[string]int{
+		"color": {"black": 2},
+		"size":  {"7": 1, "8": 1},
+		"group": {"A": 2},
+	}
+
+	if !reflect.DeepEqual(exp, res) {
+		t.Errorf("results not match\nGot:\n%v\nExpected:\n%v", res, exp)
+	}
+}
+
 func getTestData() []map[string]interface{} {
 	data := []map[string]interface{}{
 		{
