@@ -56,7 +56,7 @@ func (sorter *IntSorter) Sort(results []int64, field string, direction int) (res
 		resultsMap[v] = struct{}{}
 	}
 
-	res := make(map[int64]struct{}, len(results))
+	//res := make(map[int64]struct{}, len(results))
 	result = make([]int64, 0, len(results))
 
 	for _, v := range s {
@@ -70,10 +70,8 @@ func (sorter *IntSorter) Sort(results []int64, field string, direction int) (res
 				continue
 			}
 			for _, k := range ids {
-				if _, ok := res[k]; !ok {
-					res[k] = struct{}{}
-					result = append(result, k)
-				}
+				result = append(result, k)
+				delete(resultsMap, k)
 			}
 		}
 	}
