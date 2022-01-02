@@ -2,29 +2,39 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/k-samuel/go-faceted-search?style=flat-square)](https://goreportcard.com/report/github.com/k-samuel/go-faceted-search)
 [![Release](https://img.shields.io/github/release/golang-standards/project-layout.svg?style=flat-square)](https://github.com/k-samuel/go-faceted-search/releases/latest)
 
-# Experimental port of PHP k-samuel/faceted-search v0.3.1
+# Experimental port of PHP k-samuel/faceted-search v0.3.2
 
 PHP Library https://github.com/k-samuel/faceted-search
 
-PHPBench v2.0.3 PHP 8.1.0 + JIT + opcache (no xdebug extension)
+PHPBench v2.1.0 ArrayIndex PHP 8.1.0 + JIT + opcache (no xdebug extension)
 
 | Items count     | Memory   | Find             | Get Filters (aggregates) | Sort by field| Results Found    |
 |----------------:|---------:|-----------------:|-------------------------:|-------------:|-----------------:|
 | 10,000          | ~6Mb     | ~0.0003 s.       | ~0.002 s.                | ~0.0001 s.   | 907              |
-| 50,000          | ~40Mb    | ~0.001 s.        | ~0.013 s.                | ~0.0006 s.   | 4550             |
-| 100,000         | ~80Mb    | ~0.003 s.        | ~0.029 s.                | ~0.001 s.    | 8817             |
-| 300,000         | ~189Mb   | ~0.011 s.        | ~0.108 s.                | ~0.005 s.    | 26891            |
-| 1,000,000       | ~657Mb   | ~0.052 s.        | ~0.419 s.                | ~0.018 s.    | 90520            |
+| 50,000          | ~40Mb    | ~0.001 s.        | ~0.013 s.                | ~0.0005 s.   | 4550             |
+| 100,000         | ~80Mb    | ~0.003 s.        | ~0.030 s.                | ~0.001 s.    | 8817             |
+| 300,000         | ~189Mb   | ~0.011 s.        | ~0.106 s.                | ~0.005 s.    | 26891            |
+| 1,000,000       | ~657Mb   | ~0.050 s.        | ~0.420 s.                | ~0.018 s.    | 90520            |
 
-Bench v0.3.1 golang 1.17.3 with parallel aggregates
+PHPBench v2.1.0 FixedArrayIndex PHP 8.1.0 + JIT + opcache (no xdebug extension)
+
+| Items count     | Memory   | Find             | Get Filters (aggregates) | Sort by field| Results Found    |
+|----------------:|---------:|-----------------:|-------------------------:|-------------:|-----------------:|
+| 10,000          | ~2Mb     | ~0.0007 s.       | ~0.006 s.                | ~0.0002 s.   | 907              |
+| 50,000          | ~12Mb    | ~0.003 s.        | ~0.028 s.                | ~0.001 s.    | 4550             |
+| 100,000         | ~23Mb    | ~0.006 s.        | ~0.059 s.                | ~0.002 s.    | 8817             |
+| 300,000         | ~70Mb    | ~0.021 s.        | ~0.190 s.                | ~0.008 s.    | 26891            |
+| 1,000,000       | ~233Mb   | ~0.083 s.        | ~0.700 s.                | ~0.034 s.    | 90520            |
+
+Bench v0.3.2 golang 1.17.3 with parallel aggregates
 
 | Items count     | Memory   | Find             | Get Filters (aggregates) | Sort by field| Results Found    |
 |----------------:|---------:|-----------------:|-------------------------:|-------------:|-----------------:|
 | 10,000          | ~5Mb     | ~0.0004 s.       | ~0.001 s.                | ~0.0002 s.   | 907              |
 | 50,000          | ~15Mb    | ~0.002 s.        | ~0.010 s.                | ~0.001 s.    | 4550             |
-| 100,000         | ~21Mb    | ~0.006 s.        | ~0.028 s.                | ~0.002 s.    | 8817             |
-| 300,000         | ~47Mb    | ~0.020 s.        | ~0.091 s.                | ~0.010 s.    | 26891            |
-| 1,000,000       | ~150Mb   | ~0.089 s.        | ~0.412 s.                | ~0.034 s.    | 90520            |
+| 100,000         | ~21Mb    | ~0.007 s.        | ~0.030 s.                | ~0.003 s.    | 8817             |
+| 300,000         | ~47Mb    | ~0.021 s.        | ~0.081 s.                | ~0.007 s.    | 26891            |
+| 1,000,000       | ~150Mb   | ~0.090 s.        | ~0.372 s.                | ~0.036 s.    | 90520            |
 
 Bench v0.2.4 golang 1.17.3 with parallel aggregates
 
@@ -82,4 +92,4 @@ It can cause problems in concurrent writes and reads.
 [Web Server](./example/)
 
 ### Test
-` go test facet -coverprofile=cover.out && go tool cover -html=cover.out -o cover.html `
+` go test  ./test  -coverpkg  ./pkg/... -v -coverprofile=cover.out && go tool cover -html=cover.out -o cover.html `

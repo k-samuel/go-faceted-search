@@ -41,6 +41,12 @@ func (search *Search) Find(filters []filter.FilterInterface, inputRecords []int6
 		input = utils.FlipInt64ToMap(inputRecords)
 	}
 
+	// Aggregates optimisation for value filters.
+	// The fewer elements after the first filtering, the fewer data copies and memory allocations in iterations
+	if len(input) == 0 && len(filters) > 1 {
+		filters = search.sortFilters(filters)
+	}
+
 	mapResult, err := search.findRecords(filters, input)
 	if err != nil {
 		return []int64{}, err
@@ -77,12 +83,6 @@ func (search *Search) findRecords(filters []filter.FilterInterface, inputRecords
 	// start value is inputRecords list
 	result = inputRecords
 
-	// Aggregates optimisation for value filters.
-	// The fewer elements after the first filtering, the fewer data copies and memory allocations in iterations
-	if len(result) == 0 && len(filters) > 1 {
-		filters = search.sortFilters(filters)
-	}
-
 	for _, filter := range filters {
 		fieldName := filter.GetFieldName()
 		if !search.index.HasField(fieldName) {
@@ -103,6 +103,12 @@ func (search *Search) AggregateFilters(filters []filter.FilterInterface, inputRe
 	input := make(map[int64]struct{})
 	if len(inputRecords) > 0 {
 		input = utils.FlipInt64ToMap(inputRecords)
+	}
+
+	// Aggregates optimisation for value filters.
+	// The fewer elements after the first filtering, the fewer data copies and memory allocations in iterations
+	if len(input) == 0 && len(filters) > 1 {
+		filters = search.sortFilters(filters)
 	}
 
 	indexedFilters := make(map[string]filter.FilterInterface, len(filters))
@@ -253,9 +259,16 @@ type filterCount struct {
 	filter filter.FilterInterface
 }
 
+type filterValuesCount struct {
+	count int
+	value string
+}
+
 func (search *Search) sortFilters(filters []filter.FilterInterface) []filter.FilterInterface {
 
 	counts := make([]*filterCount, 0, len(filters))
+	var valuesInFilter int
+	var valuesCount []*filterValuesCount
 
 	// count filter values
 	for index, item := range filters {
@@ -273,11 +286,26 @@ func (search *Search) sortFilters(filters []filter.FilterInterface) []filter.Fil
 			filterCnt.count = 0
 			continue
 		}
-
+		valuesInFilter = len(valFilter.Values)
+		if valuesInFilter > 1 {
+			valuesCount = make([]*filterValuesCount, 0, valuesInFilter)
+		}
 		for _, val := range valFilter.Values {
 			cnt := search.index.GetRecordsCount(fieldName, val)
 			if filterCnt.count > cnt {
 				filterCnt.count = cnt
+			}
+			if valuesInFilter > 1 {
+				valuesCount = append(valuesCount, &filterValuesCount{count: cnt, value: val})
+			}
+		}
+		if valuesInFilter > 1 {
+			sort.SliceStable(valuesCount, func(i, j int) bool {
+				return valuesCount[i].count < valuesCount[j].count
+			})
+			valFilter.Values = make([]string, 0, len(valuesCount))
+			for _, v := range valuesCount {
+				valFilter.Values = append(valFilter.Values, v.value)
 			}
 		}
 	}
