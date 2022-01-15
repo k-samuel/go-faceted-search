@@ -2,6 +2,7 @@ package index
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"sync"
 )
@@ -51,6 +52,7 @@ func (index *Index) GetIdList() []int64 {
 			}
 		}
 	}
+	sort.Slice(result, func(i, j int) bool { return result[i] < result[j] })
 	return result
 }
 
@@ -95,6 +97,15 @@ func (index *Index) createField(name string) *Field {
 // GetField - get field struct from index
 func (index *Index) GetField(name string) *Field {
 	return index.fields[name]
+}
+
+// CommitChanges - save index changes
+func (index *Index) CommitChanges() {
+	for _, f := range index.fields {
+		for _, v := range f.Values {
+			sort.Slice(v.Ids, func(i, j int) bool { return v.Ids[i] < v.Ids[j] })
+		}
+	}
 }
 
 func (index *Index) addValue(id int64, key string, val interface{}) {
