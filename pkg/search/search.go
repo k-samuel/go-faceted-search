@@ -68,7 +68,7 @@ func (search *Search) findRecords(filters []filter.FilterInterface, inputRecords
 
 	// return all records for empty filters
 	if len(filters) == 0 {
-		total := search.index.Ids()
+		total := search.index.GetIdList()
 
 		if iLen > 0 {
 			return utils.IntersectRecAndMapKeysToMap(total, inputRecords), err
@@ -83,8 +83,8 @@ func (search *Search) findRecords(filters []filter.FilterInterface, inputRecords
 	// start value is inputRecords list
 	result = inputRecords
 
-	for _, filter := range filters {
-		fieldName := filter.GetFieldName()
+	for _, fl := range filters {
+		fieldName := fl.GetFieldName()
 		if !search.index.HasField(fieldName) {
 			continue
 		}
@@ -92,7 +92,7 @@ func (search *Search) findRecords(filters []filter.FilterInterface, inputRecords
 		if !field.HasValues() {
 			return map[int64]struct{}{}, err
 		}
-		result, err = filter.FilterResults(field, result)
+		result, err = fl.FilterResults(field, result)
 	}
 	return result, err
 }

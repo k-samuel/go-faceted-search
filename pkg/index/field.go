@@ -4,8 +4,13 @@ import "sync"
 
 // Field - struct to store value list for index field
 type Field struct {
+	mu     *sync.Mutex
 	Values map[string]*Value
-	mu     sync.Mutex
+}
+
+// NewField - create field
+func NewField() *Field {
+	return &Field{Values: make(map[string]*Value, 100), mu: &sync.Mutex{}}
 }
 
 // HasValues - check if field has any value
@@ -24,7 +29,7 @@ func (field *Field) HasValue(name string) bool {
 
 func (field *Field) createValue(name string) *Value {
 	field.mu.Lock()
-	field.Values[name] = &Value{Ids: make([]int64, 0, 100)}
+	field.Values[name] = NewValue()
 	field.mu.Unlock()
 	return field.Values[name]
 }
