@@ -92,19 +92,20 @@ func IntersectSortedInt(a, b []int64) []int64 {
 	}
 	compareCount := len(compare)
 	comparePointer := 0
+	compareLimit := compareCount - 1
 
 	result := make([]int64, 0, 100)
 
 	for _, value := range start {
 
-		if comparePointer >= compareCount {
+		if comparePointer >= compareLimit {
 			break
 		}
 
 		if value < compare[comparePointer] {
 			continue
 		}
-		for ; comparePointer < compareCount; comparePointer++ {
+		for ; comparePointer < compareLimit; comparePointer++ {
 			if compare[comparePointer] < value {
 				continue
 			}
@@ -143,15 +144,16 @@ func IntersectCountSortedInt(a, b []int64) int {
 	}
 	compareCount := len(compare)
 	comparePointer := 0
+	compareLimit := compareCount - 1
 
 	for _, value := range start {
-		if comparePointer >= compareCount {
+		if comparePointer >= compareLimit {
 			break
 		}
 		if value < compare[comparePointer] {
 			continue
 		}
-		for ; comparePointer < compareCount; comparePointer++ {
+		for ; comparePointer < compareLimit; comparePointer++ {
 			if compare[comparePointer] < value {
 				continue
 			}

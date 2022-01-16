@@ -82,6 +82,7 @@ func (search *Search) findRecords(filters []filter.FilterInterface, inputRecords
 		}
 		result, err = fl.FilterResults(field, result)
 	}
+
 	return result, err
 }
 
