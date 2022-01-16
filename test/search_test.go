@@ -21,7 +21,7 @@ func TestFind(t *testing.T) {
 	res, _ := facet.Find(filters, []int64{})
 	exp := []int64{3, 4}
 
-	if !reflect.DeepEqual(exp, utils.FlipInt64ToMap(res)) {
+	if !reflect.DeepEqual(exp, res) {
 		t.Errorf("results not match\nGot:\n%v\nExpected:\n%v", res, exp)
 	}
 

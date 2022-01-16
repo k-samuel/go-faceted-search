@@ -67,9 +67,9 @@ func (filter *RangeFilter) FilterResults(field *index.Field, inputKeys []int64) 
 	limitIds = utils.Deduplicate(limitIds)
 
 	if len(inputKeys) > 0 {
-		result = limitIds
-	} else {
 		result = utils.IntersectSortedInt(limitIds, inputKeys)
+	} else {
+		result = limitIds
 	}
 
 	return result, err
