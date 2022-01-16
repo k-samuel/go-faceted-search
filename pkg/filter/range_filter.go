@@ -34,12 +34,13 @@ func (filter *RangeFilter) GetFieldName() string {
 }
 
 // FilterResults - filter facet field data
-func (filter *RangeFilter) FilterResults(field *index.Field, inputKeys map[int64]struct{}) (result map[int64]struct{}, err error) {
+func (filter *RangeFilter) FilterResults(field *index.Field, inputKeys []int64) (result []int64, err error) {
 	var mapLen = len(inputKeys)
 	if mapLen == 0 {
 		mapLen = 100
 	}
-	limitData := make(map[int64]struct{}, mapLen)
+
+	limitIds := make([]int64, 0, mapLen)
 	var value float64
 	// collect list for different values of one property
 	for val, valObject := range field.Values {
@@ -56,19 +57,20 @@ func (filter *RangeFilter) FilterResults(field *index.Field, inputKeys map[int64
 		}
 
 		for _, v := range valObject.Ids {
-			limitData[v] = struct{}{}
+			limitIds = append(limitIds, v)
 		}
 	}
 
-	if len(limitData) == 0 {
-		return result, err
+	if len(limitIds) == 0 {
+		return make([]int64, 0, 0), err
 	}
+	limitIds = utils.Deduplicate(limitIds)
 
-	if len(inputKeys) == 0 {
-		return limitData, err
+	if len(inputKeys) > 0 {
+		result = utils.IntersectSortedInt(limitIds, inputKeys)
+	} else {
+		result = limitIds
 	}
-
-	result = utils.IntersectInt64MapKeys(limitData, inputKeys)
 
 	return result, err
 }

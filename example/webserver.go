@@ -107,6 +107,7 @@ func loadFacet(filePath string, db map[int64]map[string]interface{}, extract rec
 		index.Add(id, result)
 		counter++
 	}
+	index.CommitChanges()
 	fmt.Println(" records:", counter, " time:", time.Since(start))
 	return facet.NewSearch(index)
 }

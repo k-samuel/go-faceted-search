@@ -19,9 +19,9 @@ func TestFind(t *testing.T) {
 	}
 
 	res, _ := facet.Find(filters, []int64{})
-	exp := utils.FlipInt64ToMap([]int64{3, 4})
+	exp := []int64{3, 4}
 
-	if !reflect.DeepEqual(exp, utils.FlipInt64ToMap(res)) {
+	if !reflect.DeepEqual(exp, res) {
 		t.Errorf("results not match\nGot:\n%v\nExpected:\n%v", res, exp)
 	}
 
@@ -117,7 +117,7 @@ func TestAggregateMultiFilter(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(exp, info) {
-		t.Errorf("results not match\nGot:\n%v\nExpected:\n%v", exp, res)
+		t.Errorf("results not match\nGot:\n%v\nExpected:\n%v", res, exp)
 	}
 }
 
@@ -159,6 +159,7 @@ func TestAggregateNoFilterLimit(t *testing.T) {
 	for i, v := range data {
 		idx.Add(int64(i+1), v)
 	}
+	idx.CommitChanges()
 	facet := search.NewSearch(idx)
 
 	res, _ := facet.AggregateFilters([]filter.FilterInterface{}, []int64{1, 2})

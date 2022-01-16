@@ -129,6 +129,7 @@ func CreateIndex() *index.Index {
 		localIndex.Add(id, result)
 		counter++
 	}
+	localIndex.CommitChanges()
 
 	runtime.GC()
 	runtime.ReadMemStats(&m)
@@ -210,7 +211,6 @@ func BenchmarkSearch(b *testing.B) {
 	duration := time.Since(start)
 	fmt.Print(" Find: ", duration)
 	fmt.Printf(" Results: %d ", len(res))
-	fmt.Print(" Items: ", testIndex.GetItemsCount())
 
 	runtime.GC()
 
