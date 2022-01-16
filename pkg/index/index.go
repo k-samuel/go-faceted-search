@@ -27,6 +27,7 @@ import (
 // Index - top level structure for facet data
 type Index struct {
 	fields map[string]*Field
+	ids    []int64
 	mu     sync.Mutex
 }
 
@@ -34,24 +35,20 @@ type Index struct {
 func NewIndex() *Index {
 	var index Index
 	index.fields = make(map[string]*Field)
+	index.ids = make([]int64, 0, 500)
 	return &index
 }
 
 // GetIdList get all record id stored in index
 func (index *Index) GetIdList() []int64 {
-	data := make(map[int64]struct{}, 100)
-	result := make([]int64, 0, 100)
-	for _, f := range index.fields {
-		for _, v := range f.Values {
-			for _, id := range v.Ids {
-				if _, ok := data[id]; !ok {
-					data[id] = struct{}{}
-					result = append(result, id)
-				}
-			}
-		}
-	}
-	return result
+	data := make([]int64, len(index.ids))
+	copy(data, index.ids)
+	return data
+}
+
+// Ids get pointer to list of record id (unsafe)
+func (index *Index) Ids() []int64 {
+	return index.ids
 }
 
 // GetFields get fields map
@@ -61,6 +58,9 @@ func (index *Index) GetFields() map[string]*Field {
 
 // Add - add record to index
 func (index *Index) Add(id int64, record map[string]interface{}) {
+	index.mu.Lock()
+	index.ids = append(index.ids, id)
+	index.mu.Unlock()
 	for key, val := range record {
 		index.addValue(id, key, val)
 	}
@@ -87,7 +87,7 @@ func (index *Index) GetRecordsCount(name, value string) int {
 
 func (index *Index) createField(name string) *Field {
 	index.mu.Lock()
-	index.fields[name] = NewField()
+	index.fields[name] = &Field{Values: make(map[string]*Value)}
 	index.mu.Unlock()
 	return index.fields[name]
 }
@@ -95,6 +95,11 @@ func (index *Index) createField(name string) *Field {
 // GetField - get field struct from index
 func (index *Index) GetField(name string) *Field {
 	return index.fields[name]
+}
+
+// GetItemsCount - get total count records in index
+func (index *Index) GetItemsCount() int {
+	return len(index.ids)
 }
 
 func (index *Index) addValue(id int64, key string, val interface{}) {
