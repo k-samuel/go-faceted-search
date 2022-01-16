@@ -61,17 +61,6 @@ func IntersectRecAndMapKeys(records []int64, keys map[int64]struct{}) []int64 {
 	return result
 }
 
-// IntersectRecAndMapKeysToMap Intersection of records ids and filter list
-func IntersectRecAndMapKeysToMap(records []int64, keys map[int64]struct{}) map[int64]struct{} {
-	result := make(map[int64]struct{}, len(keys))
-	for _, v := range records {
-		if _, ok := keys[v]; ok {
-			result[v] = struct{}{}
-		}
-	}
-	return result
-}
-
 // IntersectSortedInt intersect sorted int slices
 func IntersectSortedInt(a, b []int64) []int64 {
 	if len(a) == 0 || len(b) == 0 {
@@ -92,20 +81,19 @@ func IntersectSortedInt(a, b []int64) []int64 {
 	}
 	compareCount := len(compare)
 	comparePointer := 0
-	compareLimit := compareCount - 1
 
 	result := make([]int64, 0, 100)
 
 	for _, value := range start {
 
-		if comparePointer >= compareLimit {
+		if comparePointer >= compareCount {
 			break
 		}
 
 		if value < compare[comparePointer] {
 			continue
 		}
-		for ; comparePointer < compareLimit; comparePointer++ {
+		for ; comparePointer < compareCount; comparePointer++ {
 			if compare[comparePointer] < value {
 				continue
 			}
@@ -144,16 +132,15 @@ func IntersectCountSortedInt(a, b []int64) int {
 	}
 	compareCount := len(compare)
 	comparePointer := 0
-	compareLimit := compareCount - 1
 
 	for _, value := range start {
-		if comparePointer >= compareLimit {
+		if comparePointer >= compareCount {
 			break
 		}
 		if value < compare[comparePointer] {
 			continue
 		}
-		for ; comparePointer < compareLimit; comparePointer++ {
+		for ; comparePointer < compareCount; comparePointer++ {
 			if compare[comparePointer] < value {
 				continue
 			}
