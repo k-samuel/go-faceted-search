@@ -4,8 +4,13 @@ import "sync"
 
 // Value - list of record id for value
 type Value struct {
+	mu  *sync.Mutex
 	Ids []int64
-	mu  sync.Mutex
+}
+
+// NewValue - create value
+func NewValue() *Value {
+	return &Value{Ids: make([]int64, 0, 100), mu: &sync.Mutex{}}
 }
 
 // addId - add record id into value struct
