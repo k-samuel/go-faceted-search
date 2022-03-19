@@ -6,6 +6,16 @@
 
 PHP Library https://github.com/k-samuel/faceted-search
 
+Bench v0.3.3 golang 1.18 with parallel aggregates
+
+| Items count     | Memory   | Find             | Get Filters (aggregates) | Sort by field| Results Found    |
+|----------------:|---------:|-----------------:|-------------------------:|-------------:|-----------------:|
+| 10,000          | ~7Mb     | ~0.0003 s.       | ~0.002 s.                | ~0.0002 s.   | 907              |
+| 50,000          | ~14Mb    | ~0.001 s.        | ~0.013 s.                | ~0.001 s.    | 4550             |
+| 100,000         | ~21Mb    | ~0.003 s.        | ~0.026 s.                | ~0.002 s.    | 8817             |
+| 300,000         | ~47Mb    | ~0.011 s.        | ~0.081 s.                | ~0.007 s.    | 26891            |
+| 1,000,000       | ~140Mb   | ~0.041 s.        | ~0.288 s.                | ~0.028 s.    | 90520            |
+
 Bench v0.3.3 golang 1.17.3 with parallel aggregates
 
 | Items count     | Memory   | Find             | Get Filters (aggregates) | Sort by field| Results Found    |
