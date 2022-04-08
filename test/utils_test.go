@@ -35,6 +35,15 @@ func TestIntersectSortedInt(t *testing.T) {
 	}
 }
 
+func BenchmarkIntersectSortedInt(b *testing.B) {
+	data := intersectData()
+	for i := 0; i < b.N; i++ {
+		for _, v := range data {
+			utils.IntersectSortedInt(v.src, v.cmp)
+		}
+	}
+}
+
 func TestIntersectCountSortedInt(t *testing.T) {
 	src := []int64{1, 2}
 	cmp := []int64{1, 2}
