@@ -105,40 +105,28 @@ func IntersectCountSortedInt(a, b []int64) int {
 		return 0
 	}
 	result := 0
-	var start []int64
-	var compare []int64
 
-	aLen := len(a)
-	bLen := len(b)
-	// chose minimal slice
-	if aLen < bLen {
-		start = a
-		compare = b
-	} else {
-		start = b
-		compare = a
-	}
-	compareCount := len(compare)
+	compareCount := len(b)
 	comparePointer := 0
 
-	for _, value := range start {
+	for _, value := range a {
 		if comparePointer >= compareCount {
 			break
 		}
-		if value < compare[comparePointer] {
+		if value < b[comparePointer] {
 			continue
 		}
 		for ; comparePointer < compareCount; comparePointer++ {
-			if compare[comparePointer] < value {
+			if b[comparePointer] < value {
 				continue
 			}
 
-			if compare[comparePointer] == value {
+			if b[comparePointer] == value {
 				result++
 				break
 			}
 
-			if compare[comparePointer] > value {
+			if b[comparePointer] > value {
 				break
 			}
 		}
