@@ -5,21 +5,22 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/k-samuel/go-faceted-search/pkg/filter"
-	"github.com/k-samuel/go-faceted-search/pkg/index"
-	"github.com/k-samuel/go-faceted-search/pkg/search"
-	"github.com/k-samuel/go-faceted-search/pkg/sorter"
 	"math/rand"
 	"os"
 	"runtime"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/k-samuel/go-faceted-search/pkg/filter"
+	"github.com/k-samuel/go-faceted-search/pkg/index"
+	"github.com/k-samuel/go-faceted-search/pkg/search"
+	"github.com/k-samuel/go-faceted-search/pkg/sorter"
 )
 
 var testIndex *index.Index
 var datasetFilePrefix = ".test.dataset."
-var results = 10000
+var results = 1000000
 var datasetFile string
 
 func init() {
