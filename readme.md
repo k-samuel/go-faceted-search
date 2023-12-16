@@ -2,54 +2,60 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/k-samuel/go-faceted-search?style=flat-square)](https://goreportcard.com/report/github.com/k-samuel/go-faceted-search)
 [![Release](https://img.shields.io/github/release/golang-standards/project-layout.svg?style=flat-square)](https://github.com/k-samuel/go-faceted-search/releases/latest)
 
-# Experimental port of PHP k-samuel/faceted-search v0.3.3
+# Experimental port of PHP k-samuel/faceted-search v0.3.4
 
 PHP Library https://github.com/k-samuel/faceted-search
 
 ### Golang version benchmark
 
-Bench v0.3.3 golang 1.19.4 with parallel aggregates
+ *(Apple M2 macOS 14.0)*
 
-| Items count     | Memory   | Find             | Get Filters (aggregates) | Sort by field| Results Found    |
+Bench v0.3.4 golang 1.21.5 with parallel aggregates
+
+| Items count     | Memory   | Query            | Aggregate & Count        | Sort by field| Results Found    |
 |----------------:|---------:|-----------------:|-------------------------:|-------------:|-----------------:|
-| 10,000          | ~7Mb     | ~0.0003 s.       | ~0.002 s.                | ~0.0002 s.   | 907              |
-| 50,000          | ~14Mb    | ~0.001 s.        | ~0.012 s.                | ~0.001 s.    | 4550             |
-| 100,000         | ~21Mb    | ~0.003 s.        | ~0.025 s.                | ~0.002 s.    | 8817             |
-| 300,000         | ~47Mb    | ~0.010 s.        | ~0.082 s.                | ~0.006 s.    | 26891            |
-| 1,000,000       | ~140Mb   | ~0.037 s.        | ~0.285 s.                | ~0.026 s.    | 90520            |
+| 10,000          | ~7Mb     | ~0.0002 s.       | ~0.001 s.                | ~0.0001 s.   | 907              |
+| 50,000          | ~14Mb    | ~0.001 s.        | ~0.012 s.                | ~0.0007 s.   | 4550             |
+| 100,000         | ~21Mb    | ~0.002 s.        | ~0.027 s.                | ~0.001 s.    | 8817             |
+| 300,000         | ~47Mb    | ~0.008 s.        | ~0.086 s.                | ~0.004 s.    | 26891            |
+| 1,000,000       | ~140Mb   | ~0.030 s.        | ~0.297 s.                | ~0.015 s.    | 90520            |
 
-Bench v0.3.3 golang 1.17.3 with parallel aggregates
+Bench like_3.x golang 1.21.5 (clone of k-samuel/faceted-search 3.x algorithm)
 
-| Items count     | Memory   | Find             | Get Filters (aggregates) | Sort by field| Results Found    |
+| Items count     | Memory   | Query            | Aggregate & Count        | Sort by field| Results Found    |
 |----------------:|---------:|-----------------:|-------------------------:|-------------:|-----------------:|
-| 10,000          | ~7Mb     | ~0.0003 s.       | ~0.002 s.                | ~0.0002 s.   | 907              |
-| 50,000          | ~14Mb    | ~0.002 s.        | ~0.015 s.                | ~0.001 s.    | 4550             |
-| 100,000         | ~20Mb    | ~0.004 s.        | ~0.030 s.                | ~0.002 s.    | 8817             |
-| 300,000         | ~44Mb    | ~0.012 s.        | ~0.086 s.                | ~0.007 s.    | 26891            |
-| 1,000,000       | ~142Mb   | ~0.046 s.        | ~0.297 s.                | ~0.027 s.    | 90520            |
+| 10,000          | ~7Mb     | ~0.0004 s.       | ~0.006 s.                | ~0.0004 s.   | 907              |
+| 50,000          | ~14Mb    | ~0.002 s.        | ~0.031 s.                | ~0.0008 s.   | 4550             |
+| 100,000         | ~21Mb    | ~0.004 s.        | ~0.062 s.                | ~0.001 s.    | 8817             |
+| 300,000         | ~47Mb    | ~0.013 s.        | ~0.213 s.                | ~0.004 s.    | 26891            |
+| 1,000,000       | ~140Mb   | ~0.042 s.        | ~0.800 s.                | ~0.017 s.    | 90520            |
 
 
 ### PHP version benchmark
 
-PHP 8.2  v2.1.5 ArrayIndex  JIT + opcache (no xdebug extension)
+v3.1.0 Bench PHP 8.2.10 + JIT + opcache (no xdebug extension)
 
-| Items count     | Memory   | Find             | Get Filters & Count (aggregate)| Sort by field| Results Found    |
-|----------------:|---------:|-----------------:|-------------------------------:|-------------:|-----------------:|
-| 10,000          | ~6Mb     | ~0.0004 s.       | ~0.002 s.                      | ~0.0001 s.   | 907              |
-| 50,000          | ~40Mb    | ~0.001 s.        | ~0.011 s.                      | ~0.0005 s.   | 4550             |
-| 100,000         | ~80Mb    | ~0.003 s.        | ~0.024 s.                      | ~0.001 s.    | 8817             |
-| 300,000         | ~189Mb   | ~0.010 s.        | ~0.082 s                       | ~0.003 s.    | 26891            |
-| 1,000,000       | ~657Mb   | ~0.046 s.        | ~0.306 s.                      | ~0.015 s.    | 90520            |
+ ArrayIndex
 
-PHP 8.2  v2.1.5 FixedArrayIndex JIT + opcache (no xdebug extension)
+|  Items count | Memory | Query      | Aggregate  | Aggregate & Count | Sort by field | Results Found |
+| -----------: | -----: | ---------: | ---------: | ----------------: | ------------: | ------------: |
+|       10,000 |   ~3Mb | ~0.0003 s. | ~0.0006 s. |         ~0.001 s. |    ~0.0002 s. |           907 |
+|       50,000 |  ~20Mb |  ~0.001 s. |  ~0.002 s. |         ~0.006 s. |    ~0.0005 s. |          4550 |
+|      100,000 |  ~40Mb |  ~0.002 s. |  ~0.006 s. |         ~0.013 s. |     ~0.001 s. |          8817 |
+|      300,000 |  ~95Mb |  ~0.006 s. |  ~0.016 s. |         ~0.036 s  |     ~0.002 s. |         26891 |
+|    1,000,000 | ~329Mb |  ~0.024 s. |  ~0.053 s. |         ~0.134 s. |     ~0.009 s. |         90520 |
+| 1,000,000 UB | ~324Mb |  ~0.046 s. |  ~0.078 s. |         ~0.159 s. |     ~0.015 s. |        179856 |
 
-| Items count     | Memory   | Find             | Get Filters & Count (aggregate)| Sort by field| Results Found    |
-|----------------:|---------:|-----------------:|-------------------------------:|-------------:|-----------------:|
-| 10,000          | ~2Mb     | ~0.0006 s.       | ~0.003 s.                      | ~0.0002 s.   | 907              |
-| 50,000          | ~12Mb    | ~0.003 s.        | ~0.017 s.                      | ~0.0009 s.   | 4550             |
-| 100,000         | ~23Mb    | ~0.006 s.        | ~0.040 s.                      | ~0.001 s.    | 8817             |
-| 300,000         | ~70Mb    | ~0.019 s.        | ~0.120 s.                      | ~0.006 s.    | 26891            |
-| 1,000,000       | ~233Mb   | ~0.077 s.        | ~0.455 s.                      | ~0.023 s.    | 90520            |
+FixedArrayIndex
+
+|  Items count | Memory |  Query     | Aggregate  | Aggregate & Count | Sort by field | Results Found |
+| -----------: | -----: | ---------: | ---------: | ----------------: | ------------: | ------------: |
+|       10,000 |   ~2Mb | ~0.0005 s. | ~0.0009 s. |         ~0.002 s. |    ~0.0003 s. |           907 |
+|       50,000 |  ~12Mb |  ~0.002 s. |  ~0.003 s. |         ~0.012 s. |    ~0.0007 s. |          4550 |
+|      100,000 |  ~23Mb |  ~0.006 s. |  ~0.010 s. |         ~0.029 s. |     ~0.001 s. |          8817 |
+|      300,000 |  ~70Mb |  ~0.012 s. |  ~0.022 s. |         ~0.072 s. |     ~0.003 s. |         26891 |
+|    1,000,000 | ~233Mb |  ~0.045 s. |  ~0.070 s. |         ~0.257 s. |     ~0.012 s. |         90520 |
+| 1,000,000 UB | ~233Mb |  ~0.068 s. |  ~0.101 s. |         ~0.290 s. |     ~0.017 s. |        179856 |
 
 
 # Note
