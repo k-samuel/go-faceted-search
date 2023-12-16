@@ -7,5 +7,5 @@ import (
 // FilterInterface - interface for filtering realisation
 type FilterInterface interface {
 	GetFieldName() string
-	FilterResults(facetData *index.Field, inputKeys []int64) (result []int64, err error)
+	FilterInput(facetData *index.Field, inputKeys map[int64]struct{}) map[int64]struct{}
 }

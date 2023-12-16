@@ -2,7 +2,6 @@ package filter
 
 import (
 	"github.com/k-samuel/go-faceted-search/pkg/index"
-	"github.com/k-samuel/go-faceted-search/pkg/utils"
 )
 
 // ValueFilter - filter facet data by field value
@@ -17,17 +16,15 @@ func (filter *ValueFilter) GetFieldName() string {
 }
 
 // FilterResults - filter facet field data
-func (filter *ValueFilter) FilterResults(field *index.Field, inputKeys []int64) (result []int64, err error) {
+func (filter *ValueFilter) FilterInput(field *index.Field, inputKeys map[int64]struct{}) map[int64]struct{} {
 
-	var list *index.Value
-	var mapLen = len(inputKeys)
-	var hasInput = true
-	if mapLen == 0 {
-		hasInput = false
-		mapLen = 100
+	if len(inputKeys) == 0 {
+		return filter.FilterData(field)
 	}
 
-	result = make([]int64, 0, mapLen)
+	var list *index.Value
+
+	actual := make(map[int64]struct{})
 
 	// collect list of record id for different values of one field
 	for _, val := range filter.Values {
@@ -41,14 +38,35 @@ func (filter *ValueFilter) FilterResults(field *index.Field, inputKeys []int64) 
 			continue
 		}
 
-		if hasInput {
-			result = append(result, utils.IntersectSortedInt(list.Ids, inputKeys)...)
-		} else {
-			result = append(result, list.Ids...)
+		for _, v := range list.Ids {
+			if _, ok := inputKeys[v]; ok {
+				actual[v] = struct{}{}
+			}
 		}
 	}
-	if len(result) > 1 {
-		result = utils.Deduplicate(result)
+
+	return actual
+}
+
+func (filter *ValueFilter) FilterData(field *index.Field) map[int64]struct{} {
+	result := make(map[int64]struct{})
+
+	// collect list for different values of one property
+	for _, val := range filter.Values {
+
+		if !field.HasValue(val) {
+			continue
+		}
+
+		list := field.GetValue(val)
+		idLen := len(list.Ids)
+		if idLen == 0 {
+			continue
+		}
+
+		for _, v := range list.Ids {
+			result[v] = struct{}{}
+		}
 	}
-	return result, err
+	return result
 }

@@ -1,14 +1,12 @@
 package search
 
 import (
-	"context"
+	"math"
+	"sort"
+
 	"github.com/k-samuel/go-faceted-search/pkg/filter"
 	"github.com/k-samuel/go-faceted-search/pkg/index"
 	"github.com/k-samuel/go-faceted-search/pkg/utils"
-	"math"
-	"runtime"
-	"sort"
-	"sync"
 )
 
 // Search - faceted search
@@ -34,25 +32,37 @@ func (search *Search) GetIndex() *index.Index {
 }
 
 // Find records using filters, limit search using list of recordId (optional)
-func (search *Search) Find(filters []filter.FilterInterface, inputRecords []int64) (result []int64, err error) {
+func (search *Search) Query(q Query) (result []int64) {
 
-	if len(inputRecords) > 0 {
-		sort.Slice(inputRecords, func(i, j int) bool { return inputRecords[i] < inputRecords[j] })
+	input := make(map[int64]struct{})
+
+	if len(q.Records) > 0 {
+		for _, v := range q.Records {
+			input[v] = struct{}{}
+		}
 	}
 
-	// Aggregates optimisation for value filters.
+	// Aggregates optimization for value filters.
 	// The fewer elements after the first filtering, the fewer data copies and memory allocations in iterations
-	if len(inputRecords) == 0 && len(filters) > 1 {
-		filters = search.sortFilters(filters)
+	if len(q.Records) == 0 && len(q.Filters) > 1 {
+		q.Filters = search.sortFilters(q.Filters)
 	}
 
-	mapResult, err := search.findRecords(filters, inputRecords)
-	if err != nil {
-		return []int64{}, err
+	mapResult := search.findRecordsMap(q.Filters, input)
+
+	if len(mapResult) == 0 {
+		return result
 	}
-	return mapResult, err
+
+	result = make([]int64, 0, len(mapResult))
+	for k, _ := range mapResult {
+		result = append(result, k)
+	}
+
+	return result
 }
 
+/*
 func (search *Search) findRecords(filters []filter.FilterInterface, inputRecords []int64) (result []int64, err error) {
 
 	iLen := len(inputRecords)
@@ -85,161 +95,148 @@ func (search *Search) findRecords(filters []filter.FilterInterface, inputRecords
 
 	return result, err
 }
+*/
 
-// AggregateFilters - find acceptable filter values
-func (search *Search) AggregateFilters(filters []filter.FilterInterface, inputRecords []int64) (result map[string]map[string]int, err error) {
+func (search *Search) findRecordsMap(filters []filter.FilterInterface, inputRecords map[int64]struct{}) map[int64]struct{} {
 
-	if len(inputRecords) > 0 {
-		sort.Slice(inputRecords, func(i, j int) bool { return inputRecords[i] < inputRecords[j] })
+	// return all records for empty filters
+	if len(filters) == 0 {
+		return search.findInput(filters, inputRecords)
 	}
 
-	// Aggregates optimisation for value filters.
-	// The fewer elements after the first filtering, the fewer data copies and memory allocations in iterations
-	if len(inputRecords) == 0 && len(filters) > 1 {
-		filters = search.sortFilters(filters)
-	}
+	result := make(map[int64]struct{})
 
-	indexedFilters := make(map[string]filter.FilterInterface, len(filters))
-	indexedFilteredRecords := make([]int64, 0, 100)
-	searchFields := search.index.GetFields()
-	result = make(map[string]map[string]int, len(searchFields))
+	for _, fl := range filters {
+		fieldName := fl.GetFieldName()
+		if !search.index.HasField(fieldName) {
+			continue
+		}
+		field := search.index.GetField(fieldName)
+		if !field.HasValues() {
+			return make(map[int64]struct{})
+		}
 
-	if len(filters) > 0 {
-		// index filters by field
-		for _, filter := range filters {
-			indexedFilters[filter.GetFieldName()] = filter
-		}
-		indexedFilteredRecords, err = search.findRecords(filters, inputRecords)
-		if err != nil {
-			return result, err
-		}
-	} else {
-		if len(inputRecords) > 0 {
-			indexedFilteredRecords, err = search.findRecords(filters, inputRecords)
-			if err != nil {
-				return result, err
-			}
+		result = fl.FilterInput(field, result)
+		if len(result) == 0 {
+			return result
 		}
 	}
 
-	// Create a cancel context for stopping on error
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-
-	wg := &sync.WaitGroup{}
-	in := make(chan string, len(searchFields))
-	out := make(chan *filterCountInfo, 10)
-	errChan := make(chan error)
-
-	go func() {
-		// aggregate fields in goroutines
-		for i := 0; i < runtime.NumCPU(); i++ {
-			wg.Add(1)
-			go search.aggregateField(ctx, in, out, errChan, wg, indexedFilters, indexedFilteredRecords, inputRecords)
-		}
-		wg.Wait()
-		close(out)
-	}()
-
-	// send fields into aggregation queue
-	for name := range searchFields {
-		in <- name
-	}
-	close(in)
-
-	// collect aggregation results
-Loop:
-	for {
-		select {
-		case err = <-errChan:
-			// send cancel to goroutines on field aggregation error
-			// no need to process full result
-			cancel()
-			// wait for goroutines stopped
-			wg.Wait()
-			result = make(map[string]map[string]int)
-			break Loop
-		case res, ok := <-out:
-			if !ok {
-				cancel()
-				break Loop
-			}
-			result[res.field] = res.data
-		}
-	}
-	return result, err
+	return result
 }
 
-// aggregateField - aggregation goroutine
-func (search *Search) aggregateField(
-	ctx context.Context, // cancel context
-	in chan string, // input channel
-	out chan *filterCountInfo, // results channel
-	errChan chan error, // channel for error messages
-	wg *sync.WaitGroup,
-	indexedFilters map[string]filter.FilterInterface, // filters indexed by field name
-	indexedFilteredRecords []int64, // Total list of record id suitable for filters conditions
-	inputRecords []int64, // input record id to search in
-) {
-	defer wg.Done()
-	var filtersCopy map[string]filter.FilterInterface
-	var recordIds []int64
-	var field *index.Field
-	var err error
+func (search *Search) findInput(filters []filter.FilterInterface, inputRecords map[int64]struct{}) map[int64]struct{} {
 
-	fields := search.index.GetFields()
+	total := search.index.GetIdMap()
+	if len(inputRecords) == 0 {
+		return total
+	}
 
-	for {
-		select {
-		// cancel command
-		case <-ctx.Done():
-			return
-
-		case fieldName, ok := <-in:
-			if !ok {
-				return
-			}
-
-			result := &filterCountInfo{field: fieldName, data: make(map[string]int)}
-
-			field = fields[fieldName]
-			if len(indexedFilters) == 0 && len(inputRecords) == 0 {
-				// count values
-				for val, valueObj := range field.Values {
-					result.data[val] = len(valueObj.Ids)
-				}
-				out <- result
-				runtime.Gosched()
-				continue
-			}
-
-			// copy hash map
-			filtersCopy = copyFilterMap(indexedFilters)
-
-			// do not apply self filtering
-			if _, ok := filtersCopy[fieldName]; ok {
-				delete(filtersCopy, fieldName)
-				recordIds, err = search.findRecords(extractFilters(filtersCopy), inputRecords)
-				if err != nil {
-					// send error (will stop other goroutines)
-					errChan <- err
-					return
-				}
-			} else {
-				recordIds = indexedFilteredRecords
-			}
-
-			for vName, vList := range field.Values {
-				// get records count for filter field value
-				intersect := utils.IntersectCountSortedInt(vList.Ids, recordIds)
-				if intersect > 0 {
-					result.data[vName] = intersect
-				}
-			}
-			out <- result
-			runtime.Gosched()
+	for k, _ := range total {
+		if _, ok := inputRecords[k]; !ok {
+			delete(total, k)
 		}
 	}
+
+	return total
+}
+
+// AggregateFilters - find acceptable filter values
+func (search *Search) Aggregate(q Aggregation) (result map[string]map[string]int) {
+
+	result = make(map[string]map[string]int)
+
+	input := make(map[int64]struct{})
+	if len(q.Records) > 0 {
+		for _, v := range q.Records {
+			input[v] = struct{}{}
+		}
+	}
+
+	if len(q.Filters) == 0 {
+		return search.getValuesCount()
+	}
+
+	filteredRecords := make(map[int64]struct{})
+	resultCache := make(map[string]map[int64]struct{})
+
+	args := make([]filter.FilterInterface, 0, 1)
+
+	if len(q.Filters) > 0 {
+		// Aggregates optimization for value filters.
+		// The fewer elements after the first filtering, the fewer data copies and memory allocations in iterations
+		if len(q.Filters) > 1 {
+			q.Filters = search.sortFilters(q.Filters)
+		}
+
+		for _, filter := range q.Filters {
+			name := filter.GetFieldName()
+			args = args[:0]
+			args = append(args, filter)
+			resultCache[name] = search.findRecordsMap(args, input)
+		}
+		filteredRecords = search.mergeFilters(resultCache, nil)
+
+	} else if len(input) > 0 {
+		filteredRecords = search.findRecordsMap([]filter.FilterInterface{}, input)
+	}
+
+	var recordIds map[int64]struct{}
+
+	for fieldName, field := range search.index.GetFields() {
+
+		result[fieldName] = make(map[string]int)
+
+		if _, ok := resultCache[fieldName]; ok {
+			if len(resultCache) > 1 {
+				recordIds = search.mergeFilters(resultCache, &fieldName)
+			} else {
+				recordIds = search.findRecordsMap([]filter.FilterInterface{}, input)
+			}
+		} else {
+			recordIds = filteredRecords
+		}
+
+		for valueName, val := range field.Values {
+			result[fieldName][valueName] = utils.IntersectInt64MapKeysLen(val.Ids, recordIds)
+		}
+	}
+
+	return result
+}
+
+func (search *Search) mergeFilters(cache map[string]map[int64]struct{}, skipKey *string) (result map[int64]struct{}) {
+	start := true
+	result = make(map[int64]struct{})
+
+	for key, mp := range cache {
+		if skipKey != nil && key == *skipKey {
+			continue
+		}
+		if start {
+			for k := range mp {
+				result[k] = struct{}{}
+			}
+			continue
+		}
+		for k := range result {
+			if _, ok := mp[k]; !ok {
+				delete(result, k)
+			}
+		}
+	}
+	return result
+}
+
+func (search *Search) getValuesCount() (result map[string]map[string]int) {
+	result = make(map[string]map[string]int)
+	for fieldName, field := range search.index.GetFields() {
+		result[fieldName] = make(map[string]int)
+		for valName, val := range field.Values {
+			result[fieldName][valName] = len(val.Ids)
+		}
+	}
+	return result
 }
 
 type filterCount struct {
@@ -305,22 +302,6 @@ func (search *Search) sortFilters(filters []filter.FilterInterface) []filter.Fil
 	result := make([]filter.FilterInterface, 0, len(filters))
 	for _, v := range counts {
 		result = append(result, v.filter)
-	}
-	return result
-}
-
-func extractFilters(filters map[string]filter.FilterInterface) []filter.FilterInterface {
-	var result = make([]filter.FilterInterface, 0, len(filters))
-	for _, filter := range filters {
-		result = append(result, filter)
-	}
-	return result
-}
-
-func copyFilterMap(input map[string]filter.FilterInterface) map[string]filter.FilterInterface {
-	result := make(map[string]filter.FilterInterface)
-	for k, v := range input {
-		result[k] = v
 	}
 	return result
 }

@@ -39,21 +39,18 @@ func NewIndex() *Index {
 }
 
 // GetIdList get all record id stored in index
-func (index *Index) GetIdList() []int64 {
+func (index *Index) GetIdMap() map[int64]struct{}{
 	data := make(map[int64]struct{}, 100)
-	result := make([]int64, 0, 100)
 	for _, f := range index.fields {
 		for _, v := range f.Values {
 			for _, id := range v.Ids {
 				if _, ok := data[id]; !ok {
 					data[id] = struct{}{}
-					result = append(result, id)
 				}
 			}
 		}
 	}
-	sort.Slice(result, func(i, j int) bool { return result[i] < result[j] })
-	return result
+	return data
 }
 
 // GetFields get fields map

@@ -14,18 +14,17 @@ import (
 
 	"github.com/k-samuel/go-faceted-search/pkg/filter"
 	"github.com/k-samuel/go-faceted-search/pkg/index"
+
 	"github.com/k-samuel/go-faceted-search/pkg/search"
 	"github.com/k-samuel/go-faceted-search/pkg/sorter"
 )
 
 var testIndex *index.Index
 var datasetFilePrefix = ".test.dataset."
-var results = 1000000
+var results = 10000
 var datasetFile string
 
 func init() {
-
-	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	datasetFile = datasetFilePrefix + strconv.Itoa(results)
 	if _, err := os.Stat(datasetFile); errors.Is(err, os.ErrNotExist) {
@@ -170,31 +169,28 @@ func check(e error) {
 // go tool pprof -callgrind -output callgrind.m.out mem.out
 
 func BenchmarkFind(b *testing.B) {
-	var recordFilter []int64
 	facet := search.NewSearch(testIndex)
-	filters := createFilters()
+	query := search.Query{Filters: createFilters()}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		facet.Find(filters, recordFilter)
+		facet.Query(query)
 	}
 }
 
 func BenchmarkAggregateFilters(b *testing.B) {
-	var recordFilter []int64
 	facet := search.NewSearch(testIndex)
-	filters := createFilters()
+	query := search.Aggregation{Filters: createFilters()}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		facet.AggregateFilters(filters, recordFilter)
+		facet.Aggregate(query)
 	}
 }
 
 func BenchmarkSort(b *testing.B) {
-	var recordFilter []int64
 	facet := search.NewSearch(testIndex)
-	filters := createFilters()
 	srt := sorter.NewIntSorter(testIndex)
-	res, _ := facet.Find(filters, recordFilter)
+	query := search.Query{Filters: createFilters()}
+	res := facet.Query(query)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		srt.Sort(res, "quantity", sorter.SORT_DESC)
@@ -206,19 +202,21 @@ func BenchmarkSearch(b *testing.B) {
 	searchObj := search.NewSearch(testIndex)
 	filters := createFilters()
 
-	var recordFilter []int64
+	find := search.Query{Filters: filters}
+	aggregate := search.Aggregation{Filters: filters}
+
 	start := time.Now()
-	res, _ := searchObj.Find(filters, recordFilter)
+	res := searchObj.Query(find)
 	duration := time.Since(start)
-	fmt.Print(" Find: ", duration)
-	fmt.Printf(" Results: %d ", len(res))
+	b.Log("Find:", duration)
+	b.Log("Results:", len(res))
 
 	runtime.GC()
 
 	start = time.Now()
-	filterRes, _ := searchObj.AggregateFilters(filters, recordFilter)
+	filterRes := searchObj.Aggregate(aggregate)
 	duration = time.Since(start)
-	fmt.Print(" Aggregate filters: ", duration, " filters: ", len(filterRes))
+	b.Log("Aggregate filters: ", duration, " filters: ", len(filterRes))
 
 	runtime.GC()
 
@@ -229,7 +227,7 @@ func BenchmarkSearch(b *testing.B) {
 		panic(err)
 	}
 	duration = time.Since(start)
-	fmt.Println(" Sort by field: ", duration, " sorted: ", len(sortedRecords))
+	b.Log(" Sort by field: ", duration, " sorted: ", len(sortedRecords))
 
 	runtime.GC()
 }

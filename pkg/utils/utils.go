@@ -99,6 +99,43 @@ func IntersectSortedInt(a, b []int64) []int64 {
 	return result
 }
 
+func IntersectReplaceSortedInt(source, target []int64) []int64 {
+	var i, size int
+	var has bool
+	var min int64 = -1
+	size = len(target)
+
+	for i = 0; i < size; i++ {
+		has = false
+		v := target[i]
+		if v == min {
+			break
+		}
+		for _, val := range source {
+			if val > v {
+				break
+			}
+			if val == v {
+				has = true
+				break
+			}
+		}
+		if !has {
+			if min == -1 {
+				min = v
+			}
+			// Remove the element at index i from target.
+			target[i] = target[len(target)-1] // Copy last element to index i.
+			//target[len(target)-1] = ""   // Erase last element (write zero value).
+			target = target[:len(target)-1] // Truncate slice.
+			i--                             // retry
+			size--
+		}
+	}
+	sort.Slice(target, func(i, j int) bool { return target[i] < target[j] })
+	return target
+}
+
 // IntersectCountSortedInt get intersect count for sorted int slices
 func IntersectCountSortedInt(a, b []int64) int {
 	if len(a) == 0 || len(b) == 0 {
