@@ -20,7 +20,7 @@ Bench v0.3.4 golang 1.21.5 with parallel aggregates
 | 300,000         | ~47Mb    | ~0.008 s.        | ~0.086 s.                | ~0.004 s.    | 26891            |
 | 1,000,000       | ~140Mb   | ~0.030 s.        | ~0.297 s.                | ~0.015 s.    | 90520            |
 
-Bench like_3.x golang 1.21.5 (clone of k-samuel/faceted-search 3.x algorithm)
+Bench [like_3.x](https://github.com/k-samuel/go-faceted-search/tree/like_3.x) golang 1.21.5 (clone of k-samuel/faceted-search 3.x algorithm)
 
 | Items count     | Memory   | Query            | Aggregate & Count        | Sort by field| Results Found    |
 |----------------:|---------:|-----------------:|-------------------------:|-------------:|-----------------:|
