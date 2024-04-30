@@ -3,11 +3,12 @@ package index
 // Value - list of record id for value
 type Value struct {
 	Ids []int64
+	Name string
 }
 
 // NewValue - create value
-func NewValue() *Value {
-	return &Value{Ids: make([]int64, 0, 100)}
+func NewValue(name string) *Value {
+	return &Value{Ids: make([]int64, 0, 100), Name: name}
 }
 
 // addId - add record id into value struct

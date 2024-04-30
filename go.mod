@@ -1,3 +1,3 @@
 module github.com/k-samuel/go-faceted-search
 
-go 1.17
+go 1.21

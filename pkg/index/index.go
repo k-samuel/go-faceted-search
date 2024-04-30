@@ -2,7 +2,6 @@ package index
 
 import (
 	"fmt"
-	"sort"
 	"strconv"
 	"sync"
 )
@@ -39,7 +38,7 @@ func NewIndex() *Index {
 }
 
 // GetIdList get all record id stored in index
-func (index *Index) GetIdMap() map[int64]struct{}{
+func (index *Index) GetIdMap() map[int64]struct{} {
 	data := make(map[int64]struct{}, 100)
 	for _, f := range index.fields {
 		for _, v := range f.Values {
@@ -78,10 +77,11 @@ func (index *Index) GetRecordsCount(name, value string) int {
 		return 0
 	}
 	fld := index.fields[name]
-	if _, ok := fld.Values[value]; !ok {
+	val, ok := fld.GetValue(value)
+	if !ok {
 		return 0
 	}
-	return len(fld.Values[value].Ids)
+	return len(val.Ids)
 }
 
 func (index *Index) createField(name string) *Field {
@@ -99,9 +99,7 @@ func (index *Index) GetField(name string) *Field {
 // CommitChanges - save index changes
 func (index *Index) CommitChanges() {
 	for _, f := range index.fields {
-		for _, v := range f.Values {
-			sort.Slice(v.Ids, func(i, j int) bool { return v.Ids[i] < v.Ids[j] })
-		}
+		f.SortValues()
 	}
 }
 
@@ -114,41 +112,28 @@ func (index *Index) addValue(id int64, key string, val interface{}) {
 		field = index.GetField(key)
 	}
 
-	var valString string
-	var value *Value
-
 	// map
 	if s, ok := val.(map[string]interface{}); ok {
 		for _, v := range s {
-			valString = getValueString(v)
-			if !field.HasValue(valString) {
-				value = field.createValue(valString)
-			} else {
-				value = field.GetValue(valString)
-			}
-			value.addId(id)
+			appendId(field, getValueString(v), id)
 		}
 		return
 	}
 	// array
 	if s, ok := val.([]interface{}); ok {
 		for _, v := range s {
-			valString = getValueString(v)
-			if !field.HasValue(valString) {
-				value = field.createValue(valString)
-			} else {
-				value = field.GetValue(valString)
-			}
-			value.addId(id)
+			appendId(field, getValueString(v), id)
 		}
 		return
 	}
 	/// string
-	valString = getValueString(val)
-	if !field.HasValue(valString) {
-		value = field.createValue(valString)
-	} else {
-		value = field.GetValue(valString)
+	appendId(field, getValueString(val), id)
+}
+
+func appendId(field *Field, val string, id int64) {
+	value, fieldOk := field.GetValue(val)
+	if !fieldOk {
+		value = field.createValue(val)
 	}
 	value.addId(id)
 }

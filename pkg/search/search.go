@@ -1,6 +1,7 @@
 package search
 
 import (
+	"maps"
 	"math"
 	"sort"
 
@@ -55,7 +56,7 @@ func (search *Search) Query(q Query) (result []int64) {
 	}
 
 	result = make([]int64, 0, len(mapResult))
-	for k, _ := range mapResult {
+	for k := range mapResult {
 		result = append(result, k)
 	}
 
@@ -197,8 +198,8 @@ func (search *Search) Aggregate(q Aggregation) (result map[string]map[string]int
 			recordIds = filteredRecords
 		}
 
-		for valueName, val := range field.Values {
-			result[fieldName][valueName] = utils.IntersectInt64MapKeysLen(val.Ids, recordIds)
+		for _, val := range field.Values {
+			result[fieldName][val.Name] = utils.IntersectInt64MapKeysLen(val.Ids, recordIds)
 		}
 	}
 
@@ -207,16 +208,13 @@ func (search *Search) Aggregate(q Aggregation) (result map[string]map[string]int
 
 func (search *Search) mergeFilters(cache map[string]map[int64]struct{}, skipKey *string) (result map[int64]struct{}) {
 	start := true
-	result = make(map[int64]struct{})
 
 	for key, mp := range cache {
 		if skipKey != nil && key == *skipKey {
 			continue
 		}
 		if start {
-			for k := range mp {
-				result[k] = struct{}{}
-			}
+			result = maps.Clone(mp)
 			continue
 		}
 		for k := range result {
@@ -232,8 +230,8 @@ func (search *Search) getValuesCount() (result map[string]map[string]int) {
 	result = make(map[string]map[string]int)
 	for fieldName, field := range search.index.GetFields() {
 		result[fieldName] = make(map[string]int)
-		for valName, val := range field.Values {
-			result[fieldName][valName] = len(val.Ids)
+		for _, val := range field.Values {
+			result[fieldName][val.Name] = len(val.Ids)
 		}
 	}
 	return result

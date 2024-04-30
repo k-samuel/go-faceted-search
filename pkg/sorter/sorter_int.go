@@ -2,10 +2,11 @@ package sorter
 
 import (
 	"errors"
-	"github.com/k-samuel/go-faceted-search/pkg/index"
-	"github.com/k-samuel/go-faceted-search/pkg/utils"
 	"sort"
 	"strconv"
+
+	"github.com/k-samuel/go-faceted-search/pkg/index"
+	"github.com/k-samuel/go-faceted-search/pkg/utils"
 )
 
 // IntSorter - sorter for sorting facet data by field
@@ -33,8 +34,8 @@ func (sorter *IntSorter) Sort(results []int64, field string, direction int) (res
 
 	fieldData := sorter.index.GetField(field)
 	s := make([]int, 0, len(fieldData.Values))
-	for name := range fieldData.Values {
-		val, err = strconv.Atoi(name)
+	for _, v := range fieldData.Values {
+		val, err = strconv.Atoi(v.Name)
 		if err != nil {
 			return result, err
 		}
@@ -56,7 +57,6 @@ func (sorter *IntSorter) Sort(results []int64, field string, direction int) (res
 		resultsMap[v] = struct{}{}
 	}
 
-	//res := make(map[int64]struct{}, len(results))
 	result = make([]int64, 0, len(results))
 
 	for _, v := range s {
@@ -64,8 +64,10 @@ func (sorter *IntSorter) Sort(results []int64, field string, direction int) (res
 		if err != nil {
 			return result, err
 		}
-		if _, ok := fieldData.Values[str]; ok {
-			ids := utils.IntersectRecAndMapKeys(fieldData.Values[str].Ids, resultsMap)
+		val, valOk := fieldData.GetValue(str)
+
+		if valOk {
+			ids := utils.IntersectRecAndMapKeys(val.Ids, resultsMap)
 			if len(ids) == 0 {
 				continue
 			}

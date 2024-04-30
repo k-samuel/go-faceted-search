@@ -2,9 +2,10 @@ package sorter
 
 import (
 	"errors"
+	"sort"
+
 	"github.com/k-samuel/go-faceted-search/pkg/index"
 	"github.com/k-samuel/go-faceted-search/pkg/utils"
-	"sort"
 )
 
 // StringSorter - sorter for sorting facet data by field
@@ -29,8 +30,8 @@ func (sorter *StringSorter) Sort(results []int64, field string, direction int) (
 
 	fieldData := sorter.index.GetField(field)
 	s := make([]string, 0, len(fieldData.Values))
-	for name := range fieldData.Values {
-		s = append(s, name)
+	for _, v := range fieldData.Values {
+		s = append(s, v.Name)
 	}
 
 	switch direction {
@@ -51,8 +52,11 @@ func (sorter *StringSorter) Sort(results []int64, field string, direction int) (
 	result = make([]int64, 0, len(results))
 
 	for _, v := range s {
-		if _, ok := fieldData.Values[v]; ok {
-			ids := utils.IntersectRecAndMapKeys(fieldData.Values[v].Ids, resultsMap)
+
+		val, valOk := fieldData.GetValue(v)
+
+		if valOk {
+			ids := utils.IntersectRecAndMapKeys(val.Ids, resultsMap)
 			if len(ids) == 0 {
 				continue
 			}

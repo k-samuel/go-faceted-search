@@ -1,9 +1,10 @@
 package filter
 
 import (
+	"strconv"
+
 	"github.com/k-samuel/go-faceted-search/pkg/index"
 	"github.com/k-samuel/go-faceted-search/pkg/utils"
-	"strconv"
 )
 
 // RANGE_BOTH - range type with min and max value
@@ -43,8 +44,8 @@ func (filter *RangeFilter) FilterResults(field *index.Field, inputKeys []int64) 
 	limitIds := make([]int64, 0, mapLen)
 	var value float64
 	// collect list for different values of one property
-	for val, valObject := range field.Values {
-		value, err = strconv.ParseFloat(val, 8)
+	for _, valObject := range field.Values {
+		value, err = strconv.ParseFloat(valObject.Name, 8)
 		if err != nil {
 			return result, err
 		}

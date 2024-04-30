@@ -22,18 +22,16 @@ func (filter *ValueFilter) FilterInput(field *index.Field, inputKeys map[int64]s
 		return filter.FilterData(field)
 	}
 
-	var list *index.Value
-
 	actual := make(map[int64]struct{})
 
 	// collect list of record id for different values of one field
 	for _, val := range filter.Values {
 
-		if !field.HasValue(val) {
+		list, ok := field.GetValue(val)
+		if !ok {
 			continue
 		}
 
-		list = field.GetValue(val)
 		if len(list.Ids) == 0 {
 			continue
 		}
@@ -54,11 +52,11 @@ func (filter *ValueFilter) FilterData(field *index.Field) map[int64]struct{} {
 	// collect list for different values of one property
 	for _, val := range filter.Values {
 
-		if !field.HasValue(val) {
+		list, ok := field.GetValue(val)
+		if !ok {
 			continue
 		}
 
-		list := field.GetValue(val)
 		idLen := len(list.Ids)
 		if idLen == 0 {
 			continue
